@@ -61,7 +61,7 @@ helpers = module.exports = require("./utils/helper");
 app.get("/", async (req, res, next) => {
   res.send({
     message: "Awesome it works 🐻",
-    version: "1.0.1-supabase-fix",
+    version: "1.0.2-unified-auth",
     env: process.env.NODE_ENV
   });
 });

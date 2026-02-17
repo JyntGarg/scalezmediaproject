@@ -1,7 +1,7 @@
 const userService = require("../services/userService");
 const createError = require("http-errors");
 const { signAccessToken } = require("../helpers/jwt_helper");
-const bcrypt = require("bcryptjs");
+// const bcrypt = require("bcryptjs"); // Removed (using Supabase Auth)
 const supabase = require('../config/supabaseClient');
 
 module.exports = {
@@ -9,19 +9,33 @@ module.exports = {
   create: async (req, res, next) => {
     try {
       const { email, password } = req.body;
+      const normalizedEmail = email.toLowerCase().trim();
 
-      const { data: existing } = await supabase.from('super_owners').select('*').eq('email', email.toLowerCase()).single();
-      if (existing) throw createError(409, "Email already exists");
+      // 1. Create user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: normalizedEmail,
+        password: password,
+        email_confirm: true
+      });
 
-      const hashedPassword = await bcrypt.hash(password, 10);
+      if (authError) {
+        return res.status(400).json({
+          success: false,
+          message: authError.message,
+        });
+      }
 
-      const { data: superOwner, error } = await supabase
+      // 2. Create the super owner profile in public.super_owners table
+      const { data: superOwner, error: dbError } = await supabase
         .from('super_owners')
-        .insert({ email: email.toLowerCase(), password: hashedPassword })
+        .insert({
+          id: authData.user.id,
+          email: normalizedEmail
+        })
         .select()
         .single();
 
-      if (error) throw error;
+      if (dbError) throw dbError;
 
       const accessToken = await signAccessToken(superOwner.id);
 
@@ -39,17 +53,29 @@ module.exports = {
   login: async (req, res, next) => {
     try {
       const { email, password } = req.body;
+      const normalizedEmail = email.toLowerCase().trim();
 
-      const { data: superOwner, error } = await supabase
+      // 1. Sign in with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
+
+      if (authError) {
+        return res.status(401).json({
+          success: false,
+          message: authError.message,
+        });
+      }
+
+      // 2. Fetch the super owner profile
+      const { data: superOwner, error: dbError } = await supabase
         .from('super_owners')
         .select('*')
-        .eq('email', email.toLowerCase())
+        .eq('id', authData.user.id)
         .single();
 
-      if (error || !superOwner) throw createError(401, "Invalid email or password");
-
-      const isMatch = await bcrypt.compare(password, superOwner.password);
-      if (!isMatch) throw createError(401, "Invalid email or password");
+      if (dbError || !superOwner) throw createError(401, "Invalid email or password");
 
       const accessToken = await signAccessToken(superOwner.id);
 
@@ -66,23 +92,35 @@ module.exports = {
   // create customer
   createCustomer: async (req, res, next) => {
     try {
-      const { data: superOwner } = await supabase.from('superowners').select('*').eq('id', req.payload.aud).single();
+      const { data: superOwner } = await supabase.from('super_owners').select('*').eq('id', req.payload.aud).single();
       if (!superOwner) throw createError(401, "Unauthorized");
 
       const { email, password, firstName, lastName, domain } = req.body;
+      const normalizedEmail = email.toLowerCase().trim();
 
-      const { data: existing } = await supabase.from('users').select('*').eq('email', email.toLowerCase()).single();
-      if (existing) throw createError(409, "Email already exists");
+      // 1. Create user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: normalizedEmail,
+        password: password,
+        email_confirm: true
+      });
 
-      const hashedPassword = await bcrypt.hash(password, 10);
+      if (authError) {
+        return res.status(400).json({
+          success: false,
+          message: authError.message,
+        });
+      }
 
       const { data: role } = await supabase.from('roles').select('*').ilike('name', 'owner').single();
 
-      const { data: user, error } = await supabase
+      // 2. Create the user profile in public.users table
+      const { data: user, error: dbError } = await supabase
         .from('users')
         .insert({
-          email: email.toLowerCase(),
-          password: hashedPassword,
+          id: authData.user.id,
+          email: normalizedEmail,
+          password: "", // Handled by Supabase Auth
           first_name: firstName,
           last_name: lastName,
           domain,
@@ -92,7 +130,7 @@ module.exports = {
         .select()
         .single();
 
-      if (error) throw error;
+      if (dbError) throw dbError;
 
       res.status(201).json({
         message: "Customer created successfully",
@@ -106,7 +144,7 @@ module.exports = {
   // read customers
   readCustomers: async (req, res, next) => {
     try {
-      const { data: superOwner } = await supabase.from('superowners').select('*').eq('id', req.payload.aud).single();
+      const { data: superOwner } = await supabase.from('super_owners').select('*').eq('id', req.payload.aud).single();
       if (!superOwner) throw createError(401, "Unauthorized");
 
       const { data: users, error } = await supabase
@@ -126,7 +164,7 @@ module.exports = {
   // disable customer
   disableCustomer: async (req, res, next) => {
     try {
-      const { data: superOwner } = await supabase.from('superowners').select('*').eq('id', req.payload.aud).single();
+      const { data: superOwner } = await supabase.from('super_owners').select('*').eq('id', req.payload.aud).single();
       if (!superOwner) throw createError(401, "Unauthorized");
 
       const { error } = await supabase.from('users').update({ is_active: false }).eq('id', req.params.id);
@@ -141,7 +179,7 @@ module.exports = {
   // enable customer
   enableCustomer: async (req, res, next) => {
     try {
-      const { data: superOwner } = await supabase.from('superowners').select('*').eq('id', req.payload.aud).single();
+      const { data: superOwner } = await supabase.from('super_owners').select('*').eq('id', req.payload.aud).single();
       if (!superOwner) throw createError(401, "Unauthorized");
 
       const { error } = await supabase.from('users').update({ is_active: true }).eq('id', req.params.id);
@@ -156,7 +194,7 @@ module.exports = {
   // edit customer
   editCustomer: async (req, res, next) => {
     try {
-      const { data: superOwner } = await supabase.from('superowners').select('*').eq('id', req.payload.aud).single();
+      const { data: superOwner } = await supabase.from('super_owners').select('*').eq('id', req.payload.aud).single();
       if (!superOwner) throw createError(401, "Unauthorized");
 
       const { firstName, lastName, domain } = req.body;

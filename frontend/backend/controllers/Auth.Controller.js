@@ -1,7 +1,7 @@
 const userService = require("../services/userService");
 const createError = require("http-errors");
 const { signAccessToken } = require("../helpers/jwt_helper");
-const bcrypt = require("bcryptjs");
+// const bcrypt = require("bcryptjs"); // Removed (using Supabase Auth)
 const { uploadAvatar, uploadFeviconIcon, uploadLogo } = require("../helpers/avatar_upload");
 const fs = require("fs");
 const { checkRole } = require("../helpers/role_helper");
@@ -218,11 +218,8 @@ module.exports = {
 
   setNewPassword: async (req, res) => {
     try {
-      // Get validated data
       const { resetPasswordToken, newPassword } = req.body;
 
-      // Check if this user exists
-      // const user = await User.findOne({ resetPasswordToken: resetPasswordToken });
       const user = await userService.findUserByToken(resetPasswordToken);
 
       if (!user) {
@@ -231,15 +228,18 @@ module.exports = {
         });
       }
 
-      // Update password
-      const passwordSalt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(newPassword, passwordSalt);
+      // 1. Update password in Supabase Auth
+      const { error: authError } = await supabase.auth.admin.updateUserById(
+        user.id,
+        { password: newPassword }
+      );
 
+      if (authError) throw authError;
+
+      // 2. Update legacy fields in database
       await userService.updateUser(user.id, {
         resetPasswordTokenUsed: true,
-        password: hashedPassword,
-        // loginSessionId: makeid(32), // Not in supabase schema yet, maybe add or ignore? Ignoring for now
-        // salt: ""
+        password: "", // No longer storing hashed password here
       });
 
       return res.status(200).json({
@@ -248,7 +248,7 @@ module.exports = {
     } catch (e) {
       console.log(e);
       return res.status(500).json({
-        message: "Reset password request sent successfully",
+        message: "Failed to update password",
         data: { error: e.message },
       });
     }
