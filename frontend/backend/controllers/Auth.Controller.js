@@ -7,7 +7,7 @@ const fs = require("fs");
 const { checkRole } = require("../helpers/role_helper");
 const axios = require("axios");
 const { sendResetPasswordEmail } = require("../helpers/email_helper");
-const supabase = require('@supabase/supabase-js').createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY);
+const supabase = require('../config/supabaseClient');
 
 function makeid(length) {
   var result = "";
@@ -745,7 +745,8 @@ module.exports = {
           }
         }
 
-        // for domain with hardcoded url
+        // Legacy organization manager call removed (it was hitting localhost)
+        /*
         try {
           await axios.post(`http://localhost:4000/manager/create-organization`, {
             domain: req.body.domain + ".scalez.in",
@@ -753,6 +754,7 @@ module.exports = {
         } catch (e) {
           console.log("Axios error ignored on updateCompany");
         }
+        */
 
         /*
         await User.findByIdAndUpdate(

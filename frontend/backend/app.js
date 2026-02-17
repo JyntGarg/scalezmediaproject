@@ -20,7 +20,14 @@ app.use(logger);
 const server = require("http").Server(app);
 io = module.exports = require("socket.io")(server, {
   cors: {
-    origin: ["https://app.scalez.in", "https://admin.scalez.in", "https://api.scalez.in", "http://localhost:3005"],
+    origin: [
+      "https://app.scalez.in",
+      "https://admin.scalez.in",
+      "https://api.scalez.in",
+      "https://scalezmedia.vercel.app",
+      "http://localhost:3005",
+      "http://localhost:3000"
+    ],
     methods: ["GET", "POST"],
     credentials: true
   },
@@ -52,7 +59,11 @@ constants = module.exports = require("./utils/constants");
 helpers = module.exports = require("./utils/helper");
 
 app.get("/", async (req, res, next) => {
-  res.send({ message: "Awesome it works 🐻" });
+  res.send({
+    message: "Awesome it works 🐻",
+    version: "1.0.1-supabase-fix",
+    env: process.env.NODE_ENV
+  });
 });
 
 app.get("/health", async (req, res, next) => {

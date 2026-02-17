@@ -2,7 +2,7 @@ const userService = require("../services/userService");
 const createError = require("http-errors");
 const { signAccessToken } = require("../helpers/jwt_helper");
 const bcrypt = require("bcryptjs");
-const supabase = require('@supabase/supabase-js').createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY);
+const supabase = require('../config/supabaseClient');
 
 module.exports = {
   // create
