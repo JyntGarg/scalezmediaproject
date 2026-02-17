@@ -87,7 +87,7 @@ const userService = {
             password: userData.password,
             role_id: userData.role, // Assuming role is an ID
             designation: userData.designation,
-            organization: userData.organization
+            company: userData.company
         }).select().single();
 
         if (error) throw error;
@@ -161,7 +161,7 @@ const userService = {
             lastName: data.last_name,
             email: data.email,
             avatar: data.avatar,
-            organization: data.organization
+            company: data.organization // Mapping organization column to company property
         };
     }
 };

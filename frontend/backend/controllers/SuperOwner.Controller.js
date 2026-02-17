@@ -10,7 +10,7 @@ module.exports = {
     try {
       const { email, password } = req.body;
 
-      const { data: existing } = await supabase.from('superowners').select('*').eq('email', email.toLowerCase()).single();
+      const { data: existing } = await supabase.from('super_owners').select('*').eq('email', email.toLowerCase()).single();
       if (existing) throw createError(409, "Email already exists");
 
       const hashedPassword = await bcrypt.hash(password, 10);

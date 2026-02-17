@@ -24,7 +24,7 @@ module.exports = {
   create: async (req, res, next) => {
     try {
       const email = req.body.email ? req.body.email.trim().toLowerCase() : "";
-      const { password, firstName, lastName, designation, organization } = req.body;
+      const { password, firstName, lastName, designation, organization: company } = req.body;
 
       // 1. Create user with Supabase Auth Admin to bypass email confirmation
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
@@ -65,7 +65,7 @@ module.exports = {
         password: "", // Don't store plain/hashed password in public.users if using Supabase Auth
         role: roleId,
         designation: designation || "Owner",
-        organization: organization
+        company: company
       });
 
       res.status(201).json({
@@ -587,6 +587,7 @@ module.exports = {
 
       // Keymetrics fetch
       let keyMetrics = [];
+      const ownerId = user.owner || user.id;
       if (ownerId) {
         const { data: kmData, error: kmDataError } = await supabase
           .from('keymetrics')
@@ -627,8 +628,7 @@ module.exports = {
           permissions: permission,
           levers: levers,
           keyMetrics: keyMetrics,
-          organization: user.organization,
-          avatar: user.avatar,
+          company: user.company,
         },
       });
 

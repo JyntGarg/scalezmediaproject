@@ -109,7 +109,7 @@ app.use((req, res, next) => {
 app.use((err, req, res, next) => {
   console.error("❌ Backend Error:", err);
   res.status(err.status || 500);
-  res.send({
+  res.json({
     status: err.status || 500,
     message: err.message,
   });
