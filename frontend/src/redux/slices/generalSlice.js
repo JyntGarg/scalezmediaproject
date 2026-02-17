@@ -104,7 +104,11 @@ export const registerUser = createAsyncThunk("general/register", async (payload,
       }));
     }
   } catch (err) {
-    console.log('err :>> ', err);
+    console.error("❌ Registration Error:", {
+      message: err.message,
+      response: err.response?.data,
+      status: err.response?.status
+    });
     const errorMessage = err.response?.data?.message || "Registration failed. Please try again.";
     payload.setErrors({ afterSubmit: errorMessage });
   }

@@ -23,7 +23,8 @@ module.exports = {
   // create a new user
   create: async (req, res, next) => {
     try {
-      const { email, password, firstName, lastName, designation, organization } = req.body;
+      const email = req.body.email ? req.body.email.trim().toLowerCase() : "";
+      const { password, firstName, lastName, designation, organization } = req.body;
 
       // 1. Create user with Supabase Auth Admin to bypass email confirmation
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
@@ -168,7 +169,7 @@ module.exports = {
   sendForgotPasswordLink: async (req, res) => {
     try {
       // Get validated data
-      const { email } = req.body;
+      const email = req.body.email ? req.body.email.trim().toLowerCase() : "";
 
       // Check if this user exists
       // const user = await User.findOne({ email: email });
