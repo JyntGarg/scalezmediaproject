@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 import { backendServerBaseURL } from "../../utils/backendServerBaseURL";
+import axios2 from "../../utils/axios";
 import { supabase } from "../../utils/supabaseClient";
 
 const initialState = {
