@@ -108,10 +108,15 @@ module.exports = {
       });
 
       if (authError) {
-        console.log("❌ Supabase Auth error:", authError.message);
+        console.log("❌ Supabase Auth error for", email, ":", authError.message);
+        console.log("Supabase URL used:", process.env.SUPABASE_URL);
         return res.status(401).json({
           success: false,
           message: authError.message,
+          debug: {
+            email: email,
+            errorType: authError.name || "AuthError"
+          }
         });
       }
 
