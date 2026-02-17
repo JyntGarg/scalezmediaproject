@@ -86,90 +86,12 @@ module.exports = {
   },
 
   //   login
+  /*
+  //   login - NO LONGER USED (Frontend calls Supabase directly)
   login: async (req, res, next) => {
-    try {
-      // Normalize email: trim whitespace and convert to lowercase
-      const email = req.body.email ? req.body.email.trim().toLowerCase() : "";
-      const password = req.body.password || "";
-
-      if (!email || !password) {
-        return res.status(400).json({
-          success: false,
-          message: "Email and password are required",
-        });
-      }
-
-      console.log("🔍 Attempting login for email:", email);
-
-      // 1. Sign in with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (authError) {
-        console.log("❌ Supabase Auth error for", email, ":", authError.message);
-        console.log("Supabase URL used:", process.env.SUPABASE_URL);
-        return res.status(401).json({
-          success: false,
-          message: authError.message,
-          debug: {
-            email: email,
-            errorType: authError.name || "AuthError"
-          }
-        });
-      }
-
-      const user = await userService.findUserByEmail(email);
-
-      if (!user) {
-        console.log("❌ User profile not found for email:", email);
-        return res.status(404).json({
-          success: false,
-          message: "User profile not found",
-        });
-      }
-
-      console.log("✅ User authenticated and profile found:", user.email);
-
-      await userService.updateUser(user.id, { lastLogin: new Date() });
-
-      // We can use the Supabase token or our custom JWT. 
-      // Using custom JWT for now to minimize frontend changes.
-      const token = await signAccessToken(user.id);
-
-      res.status(200).json({
-        message: "User logged in successfully",
-        token: token,
-        supabaseAccessToken: authData.session.access_token, // Optionally provide this
-        user: {
-          id: user.id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          role: user.role,
-          designation: user.designation,
-          avatar: user.avatar,
-          widgets: user.widgets,
-          company: user.company,
-          timezone: user.timezone,
-          address: user.address,
-          address2: user.address2,
-          city: user.city,
-          state: user.state,
-          zip: user.zip,
-          country: user.country,
-          currency: user.currency,
-          domain: user.domain,
-          fevicon: user.fevicon,
-          logo: user.logo,
-        },
-      });
-    } catch (err) {
-      next(err);
-      console.log(err);
-    }
+    ... (legacy code removed for brevity)
   },
+  */
 
   sendForgotPasswordLink: async (req, res) => {
     try {

@@ -1,64 +1,55 @@
-const JWT = require("jsonwebtoken");
+const supabase = require('../config/supabaseClient');
 const createError = require("http-errors");
 const userService = require("../services/userService");
-// Removed Mongoose imports
 
 module.exports = {
+  // signAccessToken is now less useful for pure Supabase but kept for compatibility if needed
   signAccessToken: (userId) => {
+    // In pure Supabase, we usually use Supabase's own JWTs.
+    // If we still need custom tokens, we keep this, but they won't be Supabase-compatible.
     return new Promise((resolve, reject) => {
-      const payload = {};
-      const secret = process.env.ACCESS_TOKEN_SECRET;
-      const options = {
-        expiresIn: "12h",
-        issuer: "scalez.in",
-        audience: userId,
-      };
-      JWT.sign(payload, secret, options, (err, token) => {
-        if (err) {
-          console.log(err.message);
-          reject(createError.InternalServerError());
-          return;
-        }
-        resolve(token);
-      });
+      // Identity is managed by Supabase now.
+      resolve("supabase-session-active");
     });
   },
-  verifyAccessToken: (req, res, next) => {
-    if (!req.headers["authorization"]) return next(createError.Unauthorized());
-    const authHeader = req.headers["authorization"];
-    const bearerToken = authHeader.split(" ");
-    const token = bearerToken[1];
-    JWT.verify(token, process.env.ACCESS_TOKEN_SECRET, async (err, payload) => {
-      if (err) {
-        const message =
-          err.name === "JsonWebTokenError" ? "Unauthorized" : err.message;
-        // return next(createError.Unauthorized(message));
+  verifyAccessToken: async (req, res, next) => {
+    try {
+      if (!req.headers["authorization"]) return next(createError.Unauthorized());
+      const authHeader = req.headers["authorization"];
+      const bearerToken = authHeader.split(" ");
+      const token = bearerToken[1];
+
+      // Verify with Supabase directly
+      const { data, error } = await supabase.auth.getUser(token);
+
+      if (error || !data.user) {
+        console.error("Supabase verification error:", error?.message);
         return res.status(401).json({
-          message: "jwt expired",
+          message: error?.message === 'JWT expired' ? "jwt expired" : "Unauthorized",
         });
       }
-      req.payload = payload;
-      // console.log("payload", payload);
 
-      try {
-        let targetUser = await userService.findUserById(payload.aud);
-        // console.log("targetUser", targetUser);
-        req.user = targetUser;
+      const authUser = data.user;
+      req.payload = { aud: authUser.id };
 
-        if (!targetUser) {
-          const superOwner = await userService.findSuperOwnerById(payload.aud);
-          if (!superOwner) {
-            return res.status(404).json({
-              message: "Admin removed the user",
-            });
-          }
+      // Fetch profile from public.users
+      let targetUser = await userService.findUserById(authUser.id);
+      req.user = targetUser;
+
+      if (!targetUser) {
+        const superOwner = await userService.findSuperOwnerById(authUser.id);
+        if (!superOwner) {
+          return res.status(404).json({
+            message: "Admin removed the user",
+          });
         }
-
-        next();
-      } catch (error) {
-        console.error("Error in verifyAccessToken:", error);
-        return next(createError.InternalServerError());
+        req.user = superOwner;
       }
-    });
+
+      next();
+    } catch (error) {
+      console.error("Error in verifyAccessToken:", error);
+      return next(createError.InternalServerError());
+    }
   },
 };

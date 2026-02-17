@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 import { backendServerBaseURL } from "../../utils/backendServerBaseURL";
-import axios2 from "../../utils/axios";
+import { supabase } from "../../utils/supabaseClient";
 
 const initialState = {
   me: null,
@@ -62,40 +62,53 @@ export const getMe = createAsyncThunk("general/getMe", async (_, thunkAPI) => {
 
 export const loginUser = createAsyncThunk("general/login", async (payload, thunkAPI) => {
   try {
-    let response = await axios.post(`${backendServerBaseURL}/api/v1/auth/login`, {
+    // 1. Sign in directly with Supabase
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: payload.email,
       password: payload.password,
     });
 
-    if (response.status === 200 && response.data.message === "User logged in successfully") {
-      payload.navigate("/dashboard");
-      localStorage.setItem("accessToken", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-      console.log('response.data.user', JSON.stringify(response.data.user))
-      thunkAPI.dispatch(updateMe(response.data.user));
+    if (error) {
+      console.error("Supabase Login Error:", error.message);
+      payload.setErrors({ afterSubmit: "Invalid email or password" });
+      return thunkAPI.rejectWithValue(error.message);
     }
-    if (response.status === 401) {
-      payload.setErrors({ afterSubmit: "Please enter correct password" });
-    }
+
+    // 2. Store session details
+    const { session, user: authUser } = data;
+    localStorage.setItem("accessToken", session.access_token);
+
+    // 3. Fetch user profile from our backend/database
+    // We can call getMe now to sync state
+    thunkAPI.dispatch(getMe());
+
+    payload.navigate("/dashboard");
+    return data;
   } catch (err) {
-    console.log('err :>> ', err)
+    console.log('err :>> ', err);
     payload.setErrors({ afterSubmit: "Please enter valid credentials!" });
+    return thunkAPI.rejectWithValue(err.message);
   }
 });
 
 export const registerUser = createAsyncThunk("general/register", async (payload, thunkAPI) => {
   try {
+    // We still call the backend for registration because it handles:
+    // 1. Supabase Auth creation
+    // 2. Database profile creation
+    // 3. Email normalization
+    // 4. Role assignment
     let response = await axios.post(`${backendServerBaseURL}/api/v1/auth/create`, {
       firstName: payload.firstName,
       lastName: payload.lastName,
       email: payload.workEmail,
       password: payload.password,
       organization: payload.companyName,
-      designation: "Owner", // Defaulting to Owner for signup flow
+      designation: "Owner",
     });
 
-    if (response.status === 201 && response.data.message === "User created successfully") {
-      // After registration, log them in or redirect to success
+    if (response.status === 201) {
+      // After registration, log them in directly
       thunkAPI.dispatch(loginUser({
         email: payload.workEmail,
         password: payload.password,
@@ -104,13 +117,10 @@ export const registerUser = createAsyncThunk("general/register", async (payload,
       }));
     }
   } catch (err) {
-    console.error("❌ Registration Error:", {
-      message: err.message,
-      response: err.response?.data,
-      status: err.response?.status
-    });
+    console.error("❌ Registration Error:", err);
     const errorMessage = err.response?.data?.message || "Registration failed. Please try again.";
     payload.setErrors({ afterSubmit: errorMessage });
+    return thunkAPI.rejectWithValue(errorMessage);
   }
 });
 
