@@ -1,0 +1,389 @@
+{
+  "name": "North Star Metrics Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "north-star-metrics",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-north-star",
+      "name": "Webhook - North Star Metrics",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "webhookId": "north-star-metrics-webhook"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "apiBaseUrl",
+              "name": "apiBaseUrl",
+              "value": "=http://localhost:7400",
+              "type": "string"
+            },
+            {
+              "id": "apiToken",
+              "name": "apiToken",
+              "value": "=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NjE5MDExNzAsImV4cCI6MTc5MzQzNzE3MCwiYXVkIjoiNjhkZTEyMGQ0MWZiMDhlYzg3Njg5NDdjIiwiaXNzIjoic2NhbGV6LmluIn0.xbV2kkdy9_bmD88mD7UXb-mDPH4FO3EM3k3SXWypBUs",
+              "type": "string"
+            },
+            {
+              "id": "projectId",
+              "name": "projectId",
+              "value": "={{ $json.body.projectId }}",
+              "type": "string"
+            },
+            {
+              "id": "name",
+              "name": "name",
+              "value": "={{ $json.body.name }}",
+              "type": "string"
+            },
+            {
+              "id": "shortName",
+              "name": "shortName",
+              "value": "={{ $json.body.shortName }}",
+              "type": "string"
+            },
+            {
+              "id": "description",
+              "name": "description",
+              "value": "={{ $json.body.description }}",
+              "type": "string"
+            },
+            {
+              "id": "currentValue",
+              "name": "currentValue",
+              "value": "={{ $json.body.currentValue }}",
+              "type": "number"
+            },
+            {
+              "id": "targetValue",
+              "name": "targetValue",
+              "value": "={{ $json.body.targetValue }}",
+              "type": "number"
+            },
+            {
+              "id": "unit",
+              "name": "unit",
+              "value": "={{ $json.body.unit }}",
+              "type": "string"
+            },
+            {
+              "id": "metricType",
+              "name": "metricType",
+              "value": "={{ $json.body.metricType || 'count' }}",
+              "type": "string"
+            },
+            {
+              "id": "timePeriod",
+              "name": "timePeriod",
+              "value": "={{ $json.body.timePeriod || 'monthly' }}",
+              "type": "string"
+            },
+            {
+              "id": "isActive",
+              "name": "isActive",
+              "value": "={{ $json.body.isActive !== undefined ? $json.body.isActive : true }}",
+              "type": "boolean"
+            },
+            {
+              "id": "deadline",
+              "name": "deadline",
+              "value": "={{ $json.body.deadline }}",
+              "type": "string"
+            },
+            {
+              "id": "metricId",
+              "name": "metricId",
+              "value": "={{ $json.body.metricId }}",
+              "type": "string"
+            },
+            {
+              "id": "value",
+              "name": "value",
+              "value": "={{ $json.body.value }}",
+              "type": "number"
+            },
+            {
+              "id": "userEmail",
+              "name": "userEmail",
+              "value": "={{ $json.body.userEmail }}",
+              "type": "string"
+            },
+            {
+              "id": "userId",
+              "name": "userId",
+              "value": "={{ $json.body.userId }}",
+              "type": "string"
+            },
+            {
+              "id": "projectName",
+              "name": "projectName",
+              "value": "={{ $json.body.projectName }}",
+              "type": "string"
+            },
+            {
+              "id": "metricName",
+              "name": "metricName",
+              "value": "={{ $json.body.metricName }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-data-north-star",
+      "name": "Set Data - North Star",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check if this is an update metric value request\nconst item = $input.first().json;\n// Check for metric ID or name\nconst hasMetricId = item.metricId && item.metricId !== '' && item.metricId !== null && item.metricId !== undefined;\nconst hasMetricName = item.metricName && item.metricName !== '' && item.metricName !== null && item.metricName !== undefined;\nconst hasMetric = hasMetricId || hasMetricName;\n\n// Check for project ID or name\nconst hasProjectId = item.projectId && item.projectId !== '' && item.projectId !== null && item.projectId !== undefined;\nconst hasProjectName = item.projectName && item.projectName !== '' && item.projectName !== null && item.projectName !== undefined;\nconst hasProject = hasProjectId || hasProjectName;\n\n// Check for value\nconst hasValue = item.value !== null && item.value !== undefined && !isNaN(item.value);\n\n// This is an update request if we have metric (ID or name), project (ID or name), and value\n// AND we DON'T have all the create fields (name, shortName, description, etc.)\nconst hasCreateFields = item.name && item.shortName && item.description && item.currentValue !== undefined && item.targetValue !== undefined && item.unit;\n\nconst isUpdateRequest = Boolean(hasMetric && hasProject && hasValue && !hasCreateFields);\n\nreturn {\n  json: {\n    ...item,\n    shouldUpdate: isUpdateRequest\n  }\n};"
+      },
+      "id": "code-check-update",
+      "name": "Code - Check Update Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [620, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "check-should-update",
+              "leftValue": "={{ Boolean($json.shouldUpdate) }}",
+              "rightValue": "={{ true }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-update-metric-value",
+      "name": "IF - Update Metric Value?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [840, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "method": "PATCH",
+        "requestMethod": "PATCH",
+        "url": "={{ ($json.projectId && $json.metricId) ? ($json.apiBaseUrl + '/api/v1/projects/' + $json.projectId + '/north-star-metrics/' + $json.metricId + '/value') : ($json.apiBaseUrl + '/api/v1/projects/webhook/north-star-metrics/value/by-name') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.apiToken }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  projectId: $json.projectId,\n  metricId: $json.metricId,\n  projectName: $json.projectName,\n  metricName: $json.metricName,\n  currentValue: $json.value,\n  userEmail: $json.userEmail,\n  userId: $json.userId\n} }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "http-update-metric-value",
+      "name": "HTTP Request - Update Metric Value",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1060, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build JSON body for HTTP request\nconst item = $input.first().json;\nconst body = {\n  name: item.name,\n  shortName: item.shortName,\n  description: item.description,\n  currentValue: item.currentValue,\n  targetValue: item.targetValue,\n  unit: item.unit,\n  metricType: item.metricType || 'count',\n  timePeriod: item.timePeriod || 'monthly',\n  isActive: item.isActive !== undefined ? item.isActive : true\n};\n\nreturn {\n  json: {\n    ...item,\n    apiBaseUrl: item.apiBaseUrl,\n    apiToken: item.apiToken,\n    projectId: item.projectId,\n    ...body\n  }\n};"
+      },
+      "id": "code-north-star",
+      "name": "Code - Build Request Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [620, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "method": "POST",
+        "requestMethod": "POST",
+        "url": "={{ $json.apiBaseUrl }}/api/v1/projects/{{ $json.projectId }}/north-star-metrics",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.apiToken }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  name: $json.name,\n  shortName: $json.shortName,\n  description: $json.description,\n  currentValue: $json.currentValue,\n  targetValue: $json.targetValue,\n  unit: $json.unit,\n  metricType: $json.metricType,\n  timePeriod: $json.timePeriod,\n  isActive: $json.isActive\n} }}",
+        "options": {}
+      },
+      "id": "http-request-north-star",
+      "name": "HTTP Request - Create North Star Metric",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format response - handle both success and error cases\nconst item = $input.first().json;\n\n// n8n HTTP Request with fullResponse returns: { statusCode, headers, body }\n// body contains the actual response from backend\nconst statusCode = item.statusCode || (item.json && item.json.statusCode);\nconst responseBody = item.body || item.json || {};\n\n// Check if there's an error (from HTTP Request)\nif (item.error) {\n  // HTTP Request failed - return error response\n  return {\n    json: {\n      success: false,\n      message: item.error.message || 'Request failed',\n      statusCode: statusCode || 500,\n      error: item.error\n    }\n  };\n}\n\n// Check if response has error status code (4xx or 5xx)\nif (statusCode && statusCode >= 400) {\n  // Backend returned error response\n  const errorMessage = responseBody.message || 'Request failed';\n  return {\n    json: {\n      success: false,\n      message: errorMessage,\n      statusCode: statusCode,\n      ...responseBody\n    }\n  };\n}\n\n// Success case (2xx) - return the response data\nif (responseBody && Object.keys(responseBody).length > 0) {\n  return { json: responseBody };\n}\n\n// Fallback: return the item as-is\nreturn { json: item };"
+      },
+      "id": "code-format-response",
+      "name": "Code - Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1280, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-north-star",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1500, 200]
+    }
+  ],
+  "connections": {
+    "Webhook - North Star Metrics": {
+      "main": [
+        [
+          {
+            "node": "Set Data - North Star",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Data - North Star": {
+      "main": [
+        [
+          {
+            "node": "Code - Check Update Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Check Update Request": {
+      "main": [
+        [
+          {
+            "node": "IF - Update Metric Value?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Update Metric Value?": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Update Metric Value",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code - Build Request Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Update Metric Value": {
+      "main": [
+        [
+          {
+            "node": "Code - Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Build Request Body": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Create North Star Metric",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Create North Star Metric": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
+

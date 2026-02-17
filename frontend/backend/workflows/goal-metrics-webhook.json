@@ -1,0 +1,716 @@
+{
+  "name": "Goal Metrics Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "goal-metrics",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-goal",
+      "name": "Webhook - Goal Metrics",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "webhookId": "goal-metrics-webhook"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "apiBaseUrl",
+              "name": "apiBaseUrl",
+              "value": "=http://localhost:7400",
+              "type": "string"
+            },
+            {
+              "id": "apiToken",
+              "name": "apiToken",
+              "value": "=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NjE5MDExNzAsImV4cCI6MTc5MzQzNzE3MCwiYXVkIjoiNjhkZTEyMGQ0MWZiMDhlYzg3Njg5NDdjIiwiaXNzIjoic2NhbGV6LmluIn0.xbV2kkdy9_bmD88mD7UXb-mDPH4FO3EM3k3SXWypBUs",
+              "type": "string"
+            },
+            {
+              "id": "name",
+              "name": "name",
+              "value": "={{ $json.body.name }}",
+              "type": "string"
+            },
+            {
+              "id": "description",
+              "name": "description",
+              "value": "={{ $json.body.description }}",
+              "type": "string"
+            },
+            {
+              "id": "project",
+              "name": "project",
+              "value": "={{ $json.body.project }}",
+              "type": "string"
+            },
+            {
+              "id": "startDate",
+              "name": "startDate",
+              "value": "={{ $json.body.startDate }}",
+              "type": "string"
+            },
+            {
+              "id": "endDate",
+              "name": "endDate",
+              "value": "={{ $json.body.endDate }}",
+              "type": "string"
+            },
+            {
+              "id": "members",
+              "name": "members",
+              "value": "={{ $json.body.members || [] }}",
+              "type": "array"
+            },
+            {
+              "id": "keymetric",
+              "name": "keymetric",
+              "value": "={{ $json.body.keymetric || [] }}",
+              "type": "array"
+            },
+            {
+              "id": "confidence",
+              "name": "confidence",
+              "value": "={{ $json.body.confidence }}",
+              "type": "string"
+            },
+            {
+              "id": "goalId",
+              "name": "goalId",
+              "value": "={{ $json.body.goalId }}",
+              "type": "string"
+            },
+            {
+              "id": "keymetricId",
+              "name": "keymetricId",
+              "value": "={{ $json.body.keymetricId }}",
+              "type": "string"
+            },
+            {
+              "id": "value",
+              "name": "value",
+              "value": "={{ $json.body.value }}",
+              "type": "number"
+            },
+            {
+              "id": "date",
+              "name": "date",
+              "value": "={{ $json.body.date || $now }}",
+              "type": "string"
+            },
+            {
+              "id": "userEmail",
+              "name": "userEmail",
+              "value": "={{ $json.body.userEmail }}",
+              "type": "string"
+            },
+            {
+              "id": "userId",
+              "name": "userId",
+              "value": "={{ $json.body.userId }}",
+              "type": "string"
+            },
+            {
+              "id": "projectName",
+              "name": "projectName",
+              "value": "={{ $json.body.projectName }}",
+              "type": "string"
+            },
+            {
+              "id": "goalName",
+              "name": "goalName",
+              "value": "={{ $json.body.goalName }}",
+              "type": "string"
+            },
+            {
+              "id": "keymetricName",
+              "name": "keymetricName",
+              "value": "={{ $json.body.keymetricName }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-data-goal",
+      "name": "Set Data - Goal",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check if this is an update metric value request\nconst item = $input.first().json;\nconst hasGoalId = item.goalId && item.goalId !== '' && item.goalId !== null && item.goalId !== undefined;\nconst hasKeymetricId = item.keymetricId && item.keymetricId !== '' && item.keymetricId !== null && item.keymetricId !== undefined;\nconst hasValue = item.value !== null && item.value !== undefined && !isNaN(item.value);\n\nconst isUpdateRequest = Boolean(hasGoalId && hasKeymetricId && hasValue);\n\nreturn {\n  json: {\n    ...item,\n    shouldUpdate: isUpdateRequest\n  }\n};"
+      },
+      "id": "code-check-update",
+      "name": "Code - Check Update Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [620, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "check-should-update",
+              "leftValue": "={{ Boolean($json.shouldUpdate) }}",
+              "rightValue": "={{ true }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-update-metric-value",
+      "name": "IF - Update Metric Value?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [840, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "method": "PUT",
+        "requestMethod": "PUT",
+        "url": "={{ $json.goalId ? ($json.apiBaseUrl + '/api/v1/goal/updateValue/' + $json.goalId) : ($json.apiBaseUrl + '/api/v1/goal/updateValue') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.apiToken }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  goalId: $json.goalId,\n  keymetricId: $json.keymetricId,\n  keymetricName: $json.keymetricName,\n  projectName: $json.projectName,\n  goalName: $json.goalName,\n  value: $json.value,\n  date: $json.date,\n  userEmail: $json.userEmail,\n  userId: $json.userId\n} }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "http-update-metric-value",
+      "name": "HTTP Request - Update Metric Value",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1060, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-goal-id-exists",
+              "leftValue": "={{ $json.goalId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-goal-id-exists",
+      "name": "IF - Goal ID Exists (for fetch)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [620, 200]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "method": "GET",
+        "url": "={{ $json.apiBaseUrl }}/api/v1/goal/read/{{ $json.goalId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.apiToken }}"
+            }
+          ]
+        },
+        "options": {
+          "retry": {
+            "maxTries": 3,
+            "retryOnFail": true
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "fetch-existing-goal",
+      "name": "HTTP Request - Fetch Existing Goal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [840, 100],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build JSON body for HTTP request\nconst item = $input.first().json;\nconst goalId = item.goalId || item.body?.goalId;\n\n// If goalId exists, we need to fetch and merge with existing goal\nlet keymetrics = item.keymetric || item.body?.keymetric || [];\nlet name = item.name || item.body?.name || '';\nlet description = item.description || item.body?.description || '';\nlet project = item.project || item.body?.project || '';\nlet members = item.members || item.body?.members || [];\nlet confidence = item.confidence || item.body?.confidence || 'high';\nlet startDate = item.startDate || item.body?.startDate || '';\nlet endDate = item.endDate || item.body?.endDate || '';\n\nreturn {\n  json: {\n    apiBaseUrl: item.apiBaseUrl,\n    apiToken: item.apiToken,\n    goalId: goalId,\n    projectId: project,\n    name: name,\n    description: description,\n    project: project,\n    startDate: startDate,\n    endDate: endDate,\n    members: members,\n    keymetric: keymetrics,\n    confidence: confidence,\n    isUpdate: !!goalId\n  }\n};"
+      },
+      "id": "code-goal",
+      "name": "Code - Build Request Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [620, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge existing goal keymetrics with new ones\n// This node receives input from both:\n// 1. Code - Build Request Body (has goalId, keymetric, apiBaseUrl, apiToken)\n// 2. HTTP Request - Fetch Existing Goal (has data: {keymetric: [...], ...})\n\nlet codeBodyData = null;\nlet existingGoalData = null;\n\n// Process all inputs - find data from both nodes\nfor (const item of $input.all()) {\n  const json = item.json;\n  \n  // Identify Code - Build Request Body output: has apiBaseUrl, apiToken, and goalId\n  if (json.apiBaseUrl && json.apiToken !== undefined && json.goalId !== undefined && json.keymetric) {\n    codeBodyData = json;\n  }\n  \n  // Identify HTTP Request - Fetch Existing Goal output: has data.data structure\n  if (json.data && typeof json.data === 'object' && json.data.keymetric !== undefined) {\n    existingGoalData = json.data;\n  }\n}\n\n// Fallback: use first input as codeBodyData if we didn't find it\nif (!codeBodyData) {\n  const firstInput = $input.first().json;\n  // If it has the structure we expect, use it\n  if (firstInput.goalId !== undefined || firstInput.keymetric) {\n    codeBodyData = firstInput;\n  }\n}\n\n// Try to get existing goal from node reference if not found in inputs\nif (!existingGoalData && codeBodyData && codeBodyData.goalId) {\n  try {\n    const fetchNode = $('HTTP Request - Fetch Existing Goal');\n    if (fetchNode && fetchNode.first()) {\n      const fetchOutput = fetchNode.first().json;\n      if (fetchOutput && fetchOutput.data && fetchOutput.data.keymetric) {\n        existingGoalData = fetchOutput.data;\n      }\n    }\n  } catch (e) {\n    // Node not found or no data - that's okay, we'll just use new keymetrics\n    console.log('Could not fetch existing goal:', e.message);\n  }\n}\n\n// Now merge the data\nconst newKeymetrics = codeBodyData ? (codeBodyData.keymetric || []) : [];\nlet mergedKeymetrics = newKeymetrics;\nlet finalData = codeBodyData || {};\n\n// If we have both existing goal and new keymetrics, merge them\nif (existingGoalData && existingGoalData.keymetric && Array.isArray(existingGoalData.keymetric) && codeBodyData && codeBodyData.goalId) {\n  // Get existing keymetric names (lowercase for comparison)\n  const existingNames = existingGoalData.keymetric.map(km => (km.name || '').toLowerCase()).filter(Boolean);\n  \n  // Filter out new metrics that already exist by name\n  const newMetricsToAdd = newKeymetrics.filter(km => {\n    const metricName = (km.name || '').toLowerCase();\n    return metricName && !existingNames.includes(metricName);\n  });\n  \n  // Merge: existing + new (avoiding duplicates)\n  mergedKeymetrics = [...existingGoalData.keymetric, ...newMetricsToAdd];\n  \n  // Build final data with merged keymetrics\n  finalData = {\n    ...codeBodyData,\n    name: codeBodyData.name || existingGoalData.name || '',\n    description: codeBodyData.description || existingGoalData.description || '',\n    project: codeBodyData.project || existingGoalData.project || '',\n    members: codeBodyData.members || existingGoalData.members || [],\n    confidence: codeBodyData.confidence || existingGoalData.confidence || 'high',\n    startDate: codeBodyData.startDate || existingGoalData.startDate || '',\n    endDate: codeBodyData.endDate || existingGoalData.endDate || '',\n    keymetric: mergedKeymetrics,\n    goalId: codeBodyData.goalId\n  };\n} else if (codeBodyData && codeBodyData.goalId) {\n  // We have goalId but couldn't fetch existing goal - use only new keymetrics\n  finalData = {\n    ...codeBodyData,\n    keymetric: newKeymetrics\n  };\n}\n\n// Return merged data\nreturn {\n  json: finalData\n};"
+      },
+      "id": "code-merge-metrics",
+      "name": "Code - Merge Keymetrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [840, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-goal-id",
+              "leftValue": "={{ $json.goalId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-goal-exists",
+      "name": "IF - Goal ID Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1060, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "method": "PUT",
+        "requestMethod": "PUT",
+        "url": "={{ $json.apiBaseUrl }}/api/v1/goal/update/{{ $json.goalId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.apiToken }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  name: $json.name,\n  description: $json.description,\n  project: $json.project,\n  projectId: $json.project,\n  startDate: $json.startDate,\n  endDate: $json.endDate,\n  members: $json.members,\n  keymetric: $json.keymetric,\n  confidence: $json.confidence\n} }}",
+        "options": {}
+      },
+      "id": "http-request-update-goal",
+      "name": "HTTP Request - Update Goal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1280, 200]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "method": "POST",
+        "requestMethod": "POST",
+        "url": "={{ $json.apiBaseUrl }}/api/v1/goal/create",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.apiToken }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  name: $json.name,\n  description: $json.description,\n  project: $json.project,\n  startDate: $json.startDate,\n  endDate: $json.endDate,\n  members: $json.members,\n  keymetric: $json.keymetric,\n  confidence: $json.confidence\n} }}",
+        "options": {}
+      },
+      "id": "http-request-create-goal",
+      "name": "HTTP Request - Create Goal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1280, 400]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "apiBaseUrl",
+              "name": "apiBaseUrl",
+              "value": "={{ $('Set Data - Goal').item.json.apiBaseUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "apiToken",
+              "name": "apiToken",
+              "value": "={{ $('Set Data - Goal').item.json.apiToken }}",
+              "type": "string"
+            },
+            {
+              "id": "goalId",
+              "name": "goalId",
+              "value": "={{ $json.goal }}",
+              "type": "string"
+            },
+            {
+              "id": "keymetricId",
+              "name": "keymetricId",
+              "value": "={{ $('Set Data - Goal').item.json.body.keymetricId }}",
+              "type": "string"
+            },
+            {
+              "id": "value",
+              "name": "value",
+              "value": "={{ $('Set Data - Goal').item.json.body.value }}",
+              "type": "number"
+            },
+            {
+              "id": "date",
+              "name": "date",
+              "value": "={{ $('Set Data - Goal').item.json.body.date || $now }}",
+              "type": "string"
+            }
+          ]
+        },
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-metric-update",
+              "leftValue": "={{ $('Set Data - Goal').item.json.body.action }}",
+              "rightValue": "updateMetric",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "update-metric-data",
+      "name": "Set Data - Update Metric",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [900, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "requestMethod": "PUT",
+        "url": "={{ $json.apiBaseUrl }}/api/v1/goal/updateValue/{{ $json.goalId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.apiToken }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "jsonParams",
+        "jsonParameters": {
+          "parameters": [
+            {
+              "name": "keymetricId",
+              "value": "={{ $json.keymetricId }}"
+            },
+            {
+              "name": "value",
+              "value": "={{ $json.value }}"
+            },
+            {
+              "name": "date",
+              "value": "={{ $json.date }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-request-update-metric",
+      "name": "HTTP Request - Update Goal Metric",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format response - handle both success and error cases\nconst item = $input.first().json;\n\n// n8n HTTP Request with fullResponse returns: { statusCode, headers, body }\n// body contains the actual response from backend\nconst statusCode = item.statusCode || (item.json && item.json.statusCode);\nconst responseBody = item.body || item.json || {};\n\n// Check if there's an error (from HTTP Request)\nif (item.error) {\n  // HTTP Request failed - return error response\n  return {\n    json: {\n      success: false,\n      message: item.error.message || 'Request failed',\n      statusCode: statusCode || 500,\n      error: item.error\n    }\n  };\n}\n\n// Check if response has error status code (4xx or 5xx)\nif (statusCode && statusCode >= 400) {\n  // Backend returned error response\n  const errorMessage = responseBody.message || 'Request failed';\n  return {\n    json: {\n      success: false,\n      message: errorMessage,\n      statusCode: statusCode,\n      ...responseBody\n    }\n  };\n}\n\n// Success case (2xx) - return the response data\nif (responseBody && Object.keys(responseBody).length > 0) {\n  return { json: responseBody };\n}\n\n// Fallback: return the item as-is\nreturn { json: item };"
+      },
+      "id": "code-format-response",
+      "name": "Code - Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1280, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-goal",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1500, 200]
+    }
+  ],
+  "connections": {
+    "Webhook - Goal Metrics": {
+      "main": [
+        [
+          {
+            "node": "Set Data - Goal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Data - Goal": {
+      "main": [
+        [
+          {
+            "node": "Code - Check Update Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Check Update Request": {
+      "main": [
+        [
+          {
+            "node": "IF - Update Metric Value?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Update Metric Value?": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Update Metric Value",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code - Build Request Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Update Metric Value": {
+      "main": [
+        [
+          {
+            "node": "Code - Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Build Request Body": {
+      "main": [
+        [
+          {
+            "node": "IF - Goal ID Exists (for fetch)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code - Merge Keymetrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Goal ID Exists (for fetch)": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Fetch Existing Goal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Fetch Existing Goal": {
+      "main": [
+        [
+          {
+            "node": "Code - Merge Keymetrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Merge Keymetrics": {
+      "main": [
+        [
+          {
+            "node": "IF - Goal ID Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Goal ID Exists?": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Update Goal",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request - Create Goal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Data - Update Metric": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Update Goal Metric",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Update Goal": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Create Goal": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Update Goal Metric": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
+
