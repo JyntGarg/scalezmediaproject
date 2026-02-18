@@ -12,49 +12,79 @@ const initialState = {
 // Get Me
 export const getMe = createAsyncThunk("general/getMe", async (_, thunkAPI) => {
   try {
-    let response = await axios2.get(`${backendServerBaseURL}/api/v1/auth/me`);
+    // 1. Get current auth user
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+    if (authError || !authUser) throw authError || new Error("No auth user found");
 
-    if (response.status === 200 && response.data.message === "User retrieved successfully") {
-      // localStorage.setItem("accessToken", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-      console.log('user', response.data.user);
-      // let projects = JSON.parse(localStorage.getItem("projectsData"));
-      // console.log('projects.length', projects)
+    // 2. Fetch profile from public.users with roles
+    const { data: profile, error: profileError } = await supabase
+      .from('users')
+      .select('*, roles!role_id(*)')
+      .eq('id', authUser.id)
+      .maybeSingle();
 
-      // if (projects.length === 0) {
-      //   console.log('HEREEEEEE')
-      //   // If projectsData length is 0, set widgets to false
-      //   let user = JSON.parse(localStorage.getItem("userData") || "{}");
-      //   let userDeets = JSON.parse(localStorage.getItem("user") || "{}");
-      //   console.log('user getMe', user)
-      //   user.widgets = {
-      //     activeGoals: false,
-      //     activeTests: false,
-      //     activity: false,
-      //     keyMetrics: false,
-      //     recentIdeas: false,
-      //     recentLearnings: false
-      //   };
-      //   userDeets.widgets = {
-      //     activeGoals: false,
-      //     activeTests: false,
-      //     activity: false,
-      //     keyMetrics: false,
-      //     recentIdeas: false,
-      //     recentLearnings: false
-      //   };
-      //   localStorage.setItem("userData",JSON.stringify(user));
-      //   localStorage.setItem("user",JSON.stringify(userDeets));
+    if (profileError) throw profileError;
 
-      //   window.reload();
-      // }
+    let finalUser = null;
 
-      thunkAPI.dispatch(updateMe(JSON.parse(localStorage.getItem("user") || "{}")));
+    if (!profile) {
+      // Check super_owners table
+      const { data: superOwner, error: soError } = await supabase
+        .from('super_owners')
+        .select('*')
+        .eq('id', authUser.id)
+        .maybeSingle();
 
-
-      // Dispatch the updateMe action with the updated userData
-
+      if (soError) throw soError;
+      if (superOwner) {
+        finalUser = {
+          id: superOwner.id,
+          _id: superOwner.id,
+          firstName: superOwner.first_name,
+          lastName: superOwner.last_name,
+          email: superOwner.email,
+          avatar: superOwner.avatar,
+          company: superOwner.organization,
+          role: { name: 'Super Owner', id: 'super_owner' }
+        };
+      }
+    } else {
+      // Map profile to legacy model structure
+      finalUser = {
+        id: profile.id,
+        _id: profile.id,
+        firstName: profile.first_name,
+        lastName: profile.last_name,
+        email: profile.email,
+        role: profile.roles ? { ...profile.roles, _id: profile.roles.id } : profile.role_id,
+        avatar: profile.avatar,
+        designation: profile.designation,
+        company: profile.company,
+        timezone: profile.timezone,
+        address: profile.address,
+        address2: profile.address2,
+        city: profile.city,
+        state: profile.state,
+        zip: profile.zip,
+        country: profile.country,
+        currency: profile.currency,
+        domain: profile.domain,
+        phone: profile.phone,
+        industry: profile.industry,
+        fevicon: profile.fevicon,
+        logo: profile.logo,
+        widgets: profile.widgets,
+        notificationSettings: profile.notification_settings,
+      };
     }
+
+    if (finalUser) {
+      localStorage.setItem("user", JSON.stringify(finalUser));
+      thunkAPI.dispatch(updateMe(finalUser));
+      return finalUser;
+    }
+
+    return thunkAPI.rejectWithValue("User profile not found");
   } catch (error) {
     console.error("Error fetching user data:", error);
     return thunkAPI.rejectWithValue(error.message);

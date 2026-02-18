@@ -1,7 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "../../utils/axios";
-import { backendServerBaseURL } from "../../utils/backendServerBaseURL";
-import { updateLearning, getAllProjects, getAllGoals } from "./projectSlice";
+import { supabase, getOwnerId } from "../../utils/supabaseClient";
 import { updateMe } from "./generalSlice";
 
 const initialState = {
@@ -19,35 +18,65 @@ const initialState = {
   popupMessage: null,
 };
 
+
+
 // Widgets
 export const updateWidgets = createAsyncThunk("dashboard/updateWidgets", async (payload, thunkAPI) => {
-  let response = await axios.put(`${backendServerBaseURL}/api/v1/dashboard/update-widgets`, {
-    widgets: {
-      activeGoals: payload.active_goals,
-      recentIdeas: payload.recent_ideas,
-      activeTests: payload.active_tests,
-      keyMetrics: payload.key_metrics,
-      recentLearnings: payload.recent_learnings,
-      activity: payload.activity,
-    },
-  });
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  if (!authUser) return;
 
-  if (response.status === 200 && response.data.message === "Widgets updated successfully") {
-    localStorage.setItem("user", JSON.stringify(response.data.user));
-    // Update Redux state so components re-render with new data
-    thunkAPI.dispatch(updateMe(response.data.user));
+  const { data: user, error } = await supabase
+    .from('users')
+    .update({
+      widgets: {
+        activeGoals: payload.active_goals,
+        recentIdeas: payload.recent_ideas,
+        activeTests: payload.active_tests,
+        keyMetrics: payload.key_metrics,
+        recentLearnings: payload.recent_learnings,
+        activity: payload.activity,
+      }
+    })
+    .eq('id', authUser.id)
+    .select('*, roles!role_id(*)')
+    .single();
+
+  if (!error && user) {
+    // Map to legacy model
+    const mappedUser = {
+      ...user,
+      role: user.roles ? { ...user.roles, _id: user.roles.id } : user.role_id,
+      firstName: user.first_name,
+      lastName: user.last_name,
+    };
+    localStorage.setItem("user", JSON.stringify(mappedUser));
+    thunkAPI.dispatch(updateMe(mappedUser));
   }
 });
 
 // Dashboards
 export const readTasks = createAsyncThunk("dashboard/readTasks", async (_, thunkAPI) => {
   try {
-    let response = await axios.get(`${backendServerBaseURL}/api/v1/dashboard/readTasks`);
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) return;
 
-    if (response.status === 200 && response.data.message === "Tests fetched successfully") {
-      thunkAPI.dispatch(updatetasksAssigned(response.data.tasksAssigned));
-      thunkAPI.dispatch(updatetasksCompleted(response.data.tasksCompleted));
-    }
+    const { data: tests, error } = await supabase
+      .from('tests')
+      .select('*, project:projects(*), test_assignments!inner(user_id)')
+      .eq('test_assignments.user_id', authUser.id);
+
+    if (error) throw error;
+
+    let tasks = [];
+    (tests || []).forEach(test => {
+      tasks = tasks.concat(test.tasks || []);
+    });
+
+    const tasksAssigned = tasks.filter(task => task.status === false);
+    const tasksCompleted = tasks.filter(task => task.status === true);
+
+    thunkAPI.dispatch(updatetasksAssigned(tasksAssigned));
+    thunkAPI.dispatch(updatetasksCompleted(tasksCompleted));
   } catch (error) {
     console.error("Error fetching tasks:", error);
     return thunkAPI.rejectWithValue(error.message);
@@ -56,11 +85,22 @@ export const readTasks = createAsyncThunk("dashboard/readTasks", async (_, thunk
 
 export const readCheckins = createAsyncThunk("dashboard/readCheckins", async (_, thunkAPI) => {
   try {
-    let response = await axios.get(`${backendServerBaseURL}/api/v1/dashboard/readCheckins`);
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) return;
 
-    if (response.status === 200) {
-      thunkAPI.dispatch(updatecheckins(response.data.Checkins));
-    }
+    const { data: goals, error } = await supabase
+      .from('goals')
+      .select('*, goal_members!inner(user_id)')
+      .eq('goal_members.user_id', authUser.id);
+
+    if (error) throw error;
+
+    let keymetrics = [];
+    (goals || []).forEach(goal => {
+      keymetrics = keymetrics.concat(goal.keymetric || []);
+    });
+
+    thunkAPI.dispatch(updatecheckins(keymetrics));
   } catch (error) {
     console.error("Error fetching checkins:", error);
     return thunkAPI.rejectWithValue(error.message);
@@ -69,11 +109,18 @@ export const readCheckins = createAsyncThunk("dashboard/readCheckins", async (_,
 
 export const readLearnings = createAsyncThunk("dashboard/readLearnings", async (_, thunkAPI) => {
   try {
-    let response = await axios.get(`${backendServerBaseURL}/api/v1/dashboard/readLearnings`);
+    const ownerId = await getOwnerId();
+    if (!ownerId) return;
 
-    if (response.status === 200) {
-      thunkAPI.dispatch(updatelearningsData(response.data.learnings));
-    }
+    const { data: learnings, error } = await supabase
+      .from('learnings')
+      .select('*, project:projects(*)')
+      .eq('owner_id', ownerId);
+
+    if (error) throw error;
+
+    const filteredLearnings = (learnings || []).filter(learning => learning.project?.is_archived === false);
+    thunkAPI.dispatch(updatelearningsData(filteredLearnings));
   } catch (error) {
     console.error("Error fetching learnings:", error);
     return thunkAPI.rejectWithValue(error.message);
@@ -82,10 +129,18 @@ export const readLearnings = createAsyncThunk("dashboard/readLearnings", async (
 
 export const readIdeas = createAsyncThunk("dashboard/readIdeas", async (_, thunkAPI) => {
   try {
-    let response = await axios.get(`${backendServerBaseURL}/api/v1/dashboard/readIdeas`);
-    if (response.status === 200) {
-      thunkAPI.dispatch(updateideasData(response.data.ideas));
-    }
+    const ownerId = await getOwnerId();
+    if (!ownerId) return;
+
+    const { data: ideas, error } = await supabase
+      .from('ideas')
+      .select('*, project:projects(*), created_by_user:users!created_by(*)')
+      .eq('owner_id', ownerId);
+
+    if (error) throw error;
+
+    const filteredIdeas = (ideas || []).filter(idea => idea.project?.is_archived === false);
+    thunkAPI.dispatch(updateideasData(filteredIdeas));
   } catch (error) {
     console.error("Error fetching ideas:", error);
     return thunkAPI.rejectWithValue(error.message);
@@ -94,11 +149,18 @@ export const readIdeas = createAsyncThunk("dashboard/readIdeas", async (_, thunk
 
 export const readGoals = createAsyncThunk("dashboard/readGoals", async (_, thunkAPI) => {
   try {
-    let response = await axios.get(`${backendServerBaseURL}/api/v1/dashboard/readGoals`);
+    const ownerId = await getOwnerId();
+    if (!ownerId) return;
 
-    if (response.status === 200) {
-      thunkAPI.dispatch(updategoalsData(response.data.goals));
-    }
+    const { data: goals, error } = await supabase
+      .from('goals')
+      .select('*, project:projects(*), members:users!goal_members(*)')
+      .eq('owner_id', ownerId);
+
+    if (error) throw error;
+
+    const filteredGoals = (goals || []).filter(goal => goal.project?.is_archived === false);
+    thunkAPI.dispatch(updategoalsData(filteredGoals));
   } catch (error) {
     console.error("Error fetching goals:", error);
     return thunkAPI.rejectWithValue(error.message);
@@ -107,11 +169,18 @@ export const readGoals = createAsyncThunk("dashboard/readGoals", async (_, thunk
 
 export const readTests = createAsyncThunk("dashboard/readTests", async (_, thunkAPI) => {
   try {
-    let response = await axios.get(`${backendServerBaseURL}/api/v1/dashboard/readTests`);
+    const ownerId = await getOwnerId();
+    if (!ownerId) return;
 
-    if (response.status === 200) {
-      thunkAPI.dispatch(updatetestsData(response.data.tests));
-    }
+    const { data: tests, error } = await supabase
+      .from('tests')
+      .select('*, project:projects(*), assigned_to_user:users!test_assignments(*)')
+      .eq('owner_id', ownerId);
+
+    if (error) throw error;
+
+    const filteredTests = (tests || []).filter(test => test.project?.is_archived === false);
+    thunkAPI.dispatch(updatetestsData(filteredTests));
   } catch (error) {
     console.error("Error fetching tests:", error);
     return thunkAPI.rejectWithValue(error.message);
@@ -120,18 +189,34 @@ export const readTests = createAsyncThunk("dashboard/readTests", async (_, thunk
 
 // Notifications
 export const readNotifications = createAsyncThunk("dashboard/readNotifications", async (_, thunkAPI) => {
-  let response = await axios.get(`${backendServerBaseURL}/api/v1/notification/read`);
+  try {
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) return;
 
-  if (response.status === 200) {
-    thunkAPI.dispatch(updatenotifications(response.data));
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*, sender:sender_id(*)')
+      .eq('recipient_id', authUser.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    thunkAPI.dispatch(updatenotifications(data));
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
   }
 });
 
 export const markRead = createAsyncThunk("dashboard/markRead", async (payload, thunkAPI) => {
-  let response = await axios.put(`${backendServerBaseURL}/api/v1/notification/mark/${payload.notificationId}`);
+  try {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', payload.notificationId);
 
-  if (response.status === 200) {
+    if (error) throw error;
     thunkAPI.dispatch(readNotifications());
+  } catch (error) {
+    console.error("Error marking notification as read:", error);
   }
 });
 

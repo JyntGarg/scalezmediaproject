@@ -29,6 +29,7 @@ import {
 } from "../../../redux/slices/projectSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { backendServerBaseURL } from "../../../utils/backendServerBaseURL";
+import { supabase } from "../../../utils/supabaseClient";
 import { formatDate2, formatDate4 } from "../../../utils/formatTime";
 import moment from "moment";
 import TourModal from "../Tour/TourModal";
@@ -65,68 +66,87 @@ function Insights() {
 
   useEffect(() => {
     if (projectId) {
-    dispatch(getIdeasAndTestChartData({ projectId }));
-    dispatch(getlearningsAcquiredGraphData({ projectId }));
-    dispatch(getlearningsByGrowthLeverGraphData({ projectId }));
-    dispatch(getTeamPartitionGraphData({ projectId }));
-    dispatch(getGrowthData({ projectId }));
+      dispatch(getIdeasAndTestChartData({ projectId }));
+      dispatch(getlearningsAcquiredGraphData({ projectId }));
+      dispatch(getlearningsByGrowthLeverGraphData({ projectId }));
+      dispatch(getTeamPartitionGraphData({ projectId }));
+      dispatch(getGrowthData({ projectId }));
 
-    // Fetch goals for filter dropdown
-    const fetchGoals = async () => {
-      try {
-        const response = await fetch(
-          `${backendServerBaseURL}/api/v1/goal/read/${projectId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-            },
+      // Fetch goals for filter dropdown
+      const fetchGoals = async () => {
+        try {
+          const { data: goalsData, error } = await supabase
+            .from('goals')
+            .select('id, name')
+            .eq('project_id', projectId);
+          if (error) throw error;
+          setGoals(goalsData || []);
+        } catch (error) {
+          console.error("Failed to fetch goals:", error);
+        }
+      };
+
+      // Fetch activity history directly from Supabase
+      const fetchActivityHistory = async () => {
+        setActivityLoading(true);
+        try {
+          let query = supabase
+            .from('history')
+            .select('*, user:users!performed_by(id, first_name, last_name, avatar)')
+            .eq('project_id', projectId)
+            .order('action_date', { ascending: false })
+            .limit(50);
+
+          // Filter by span
+          if (insightsSpan !== 'all') {
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - parseInt(insightsSpan) * 7);
+            query = query.gte('action_date', startDate.toISOString());
           }
-        );
-        const data = await response.json();
-        if (data.goals) {
-          setGoals(data.goals);
-        }
-      } catch (error) {
-        console.error("Failed to fetch goals:", error);
-      }
-    };
 
-    // Fetch activity history
-    const fetchActivityHistory = async () => {
-      setActivityLoading(true);
-      try {
-        const goalParam = selectedGoal !== "all" ? `&goalId=${selectedGoal}` : "";
-        const response = await fetch(
-          `${backendServerBaseURL}/api/v1/insight/getActivityHistory/${projectId}?span=${insightsSpan}${goalParam}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-            },
+          // Filter by goal
+          if (selectedGoal !== 'all') {
+            query = query.eq('goal_id', selectedGoal);
           }
-        );
 
-        if (!response.ok) {
-          console.error("Activity history API error:", response.status, response.statusText);
+          const { data: historyData, error } = await query;
+          if (error) throw error;
+
+          const actionLabels = {
+            'created': 'Created',
+            'moved_to_test': 'Idea → Test',
+            'moved_to_learning': 'Test → Learning',
+            'sent_back_to_test': 'Learning → Test',
+            'sent_back_to_idea': 'Test → Idea',
+          };
+
+          const activities = (historyData || []).map(h => ({
+            id: h.id,
+            date: h.action_date,
+            action: h.action,
+            actionLabel: actionLabels[h.action] || h.action,
+            itemName: h.item_name,
+            user: h.user ? {
+              name: `${h.user.first_name || ''} ${h.user.last_name || ''}`.trim(),
+              avatar: h.user.avatar,
+            } : null,
+          }));
+
+          setActivityHistory({
+            activities,
+            totalActivities: activities.length,
+            movementCounts: {},
+          });
+        } catch (error) {
+          console.error("Failed to fetch activity history:", error);
           setActivityHistory({ activities: [], movementCounts: {}, totalActivities: 0 });
-          return;
+        } finally {
+          setActivityLoading(false);
         }
+      };
 
-        const data = await response.json();
-        if (data.message === "Activity history fetched successfully") {
-          setActivityHistory(data);
-        } else {
-          setActivityHistory({ activities: [], movementCounts: {}, totalActivities: 0 });
-        }
-      } catch (error) {
-        console.error("Failed to fetch activity history:", error);
-        setActivityHistory({ activities: [], movementCounts: {}, totalActivities: 0 });
-      } finally {
-        setActivityLoading(false);
-      }
-    };
-
-    fetchGoals();
-    fetchActivityHistory();
+      fetchGoals();
+      fetchActivityHistory();
     }
   }, [projectId, insightsSpan, growthSpan, selectedGoal, dispatch]);
 
@@ -151,26 +171,26 @@ function Insights() {
   };
 
 
-   const countAllIdeas = () => {
-     if (!growthData?.projectCount || !Array.isArray(growthData.projectCount)) {
-       return 0;
-     }
-     let totalIdeas = 0;
-     growthData.projectCount.forEach((project) => {
-       totalIdeas += project?.countIdea || 0;
-     });
-     return totalIdeas;
-   };
-   const countAllTest = () => {
-     if (!growthData?.projectCount || !Array.isArray(growthData.projectCount)) {
-       return 0;
-     }
-     let totalTest = 0;
-     growthData.projectCount.forEach((project) => {
-       totalTest += project?.countTest || 0;
-     });
-     return totalTest;
-   };
+  const countAllIdeas = () => {
+    if (!growthData?.projectCount || !Array.isArray(growthData.projectCount)) {
+      return 0;
+    }
+    let totalIdeas = 0;
+    growthData.projectCount.forEach((project) => {
+      totalIdeas += project?.countIdea || 0;
+    });
+    return totalIdeas;
+  };
+  const countAllTest = () => {
+    if (!growthData?.projectCount || !Array.isArray(growthData.projectCount)) {
+      return 0;
+    }
+    let totalTest = 0;
+    growthData.projectCount.forEach((project) => {
+      totalTest += project?.countTest || 0;
+    });
+    return totalTest;
+  };
 
   // ECharts Options
   const ideasTestsChartOption = {
@@ -561,7 +581,7 @@ function Insights() {
             <SelectContent>
               <SelectItem value="all">All Goals</SelectItem>
               {goals.map((goal) => (
-                <SelectItem key={goal._id} value={goal._id}>
+                <SelectItem key={goal.id || goal._id} value={goal.id || goal._id}>
                   {goal.name}
                 </SelectItem>
               ))}
@@ -590,9 +610,9 @@ function Insights() {
       {!hasData && (
         <div className="flex items-center justify-center mt-5">
           <div className="text-center space-y-4">
-            <img 
-              src="/static/illustrations/no-projects-found.svg" 
-              alt="" 
+            <img
+              src="/static/illustrations/no-projects-found.svg"
+              alt=""
               className="h-48 mx-auto"
               style={{ pointerEvents: "none" }}
               onClick={(e) => {
@@ -871,21 +891,21 @@ function Insights() {
                   <tbody>
                     {growthData?.projectCount && growthData.projectCount.length > 0 ? (
                       growthData.projectCount.map((user, index) => (
-                      <tr key={index} className="border-t hover:bg-gray-50">
-                        <td className="px-6 py-3">
-                          <div className="flex items-center gap-2">
-                            <img
+                        <tr key={index} className="border-t hover:bg-gray-50">
+                          <td className="px-6 py-3">
+                            <div className="flex items-center gap-2">
+                              <img
                                 src={`${backendServerBaseURL}/${user?.user?.avatar || 'uploads/default.png'}`}
-                              alt=""
-                              className="w-6 h-6 rounded-full"
+                                alt=""
+                                className="w-6 h-6 rounded-full"
                                 onError={(e) => {
                                   e.target.src = `${backendServerBaseURL}/uploads/default.png`;
                                 }}
-                            />
-                            <span className="text-sm">
+                              />
+                              <span className="text-sm">
                                 {user?.user?.firstName || ''} {user?.user?.lastName || ''}
-                            </span>
-                          </div>
+                              </span>
+                            </div>
                           </td>
                           <td className="px-6 py-3 text-sm">{user?.countIdea || 0}</td>
                           <td className="px-6 py-3 text-sm">{user?.countNominate || 0}</td>
