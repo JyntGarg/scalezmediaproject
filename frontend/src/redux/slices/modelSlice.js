@@ -1,7 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-// import { Navigate } from "react-router-dom";
-import axios from "../../utils/axios";
-import { backendServerBaseURL } from "../../utils/backendServerBaseURL";
+import * as supabaseApi from "../../utils/supabaseApi";
 
 const initialState = {
   models: [],
@@ -11,57 +9,57 @@ const initialState = {
   showCreateModelDialog: false,
 };
 
-// Models
 export const getAllModels = createAsyncThunk("model/getAllModels", async (_, thunkAPI) => {
-  let response = await axios.get(`${backendServerBaseURL}/api/v1/models/read`);
-
-  if (response.status === 200 && response.data.message === "Models fetched successfully") {
-    thunkAPI.dispatch(updateModels(response.data.models));
+  try {
+    const result = await supabaseApi.getModels();
+    if (result?.models) thunkAPI.dispatch(updateModels(result.models));
+  } catch (err) {
+    console.error(err);
   }
 });
 
 export const getSingleModel = createAsyncThunk("model/getSingleModel", async (payload, thunkAPI) => {
-  let response = await axios.get(`${backendServerBaseURL}/api/v1/models/read/${payload.modelId}`);
-
-  if (response.status === 200 && response.data.message === "Model fetched successfully") {
-    thunkAPI.dispatch(updatesingleModelInfo(response.data.model));
+  try {
+    const result = await supabaseApi.getModelById(payload.modelId);
+    if (result?.model) thunkAPI.dispatch(updatesingleModelInfo(result.model));
+  } catch (err) {
+    console.error(err);
   }
 });
 
 export const createModel = createAsyncThunk("model/createModel", async (payload, thunkAPI) => {
-  let response = await axios.post(`${backendServerBaseURL}/api/v1/models/create`, {
-    name: payload.name,
-    values: payload.values,
-  });
-
-  console.log('response :>> ', response);
-
-  if (response.status === 201 && response.data.message === "Model created successfully") {
-    // Refresh model data and wait for it to complete
-    await thunkAPI.dispatch(getSingleModel({modelId : response.data.model._id}));
-    payload.closeModal();
-    payload.navigate(`/models/${response.data.model._id}`);
+  try {
+    const result = await supabaseApi.createModel(payload);
+    const modelId = result?.model?.id || result?.model?._id;
+    if (modelId) {
+      await thunkAPI.dispatch(getSingleModel({ modelId }));
+      payload.closeModal?.();
+      payload.navigate?.(`/models/${modelId}`);
+    }
+  } catch (err) {
+    console.error(err);
   }
 });
 
 export const editModel = createAsyncThunk("model/editModel", async (payload, thunkAPI) => {
-  let response = await axios.put(`${backendServerBaseURL}/api/v1/models/update/${payload.modelId}`, {
-    name: payload.name,
-    values: payload.values,
-  });
-
-  if (response.status === 200 && response.data.message === "Model updated successfully") {
-    thunkAPI.dispatch(getSingleModel());
-    payload.closeModal();
+  try {
+    await supabaseApi.updateModel(payload.modelId, payload);
+    thunkAPI.dispatch(getSingleModel({ modelId: payload.modelId }));
+    payload.closeModal?.();
+  } catch (err) {
+    console.error(err);
   }
 });
 
 export const deleteModel = createAsyncThunk("model/deleteModel", async (payload, thunkAPI) => {
-  let response = await axios.delete(`${backendServerBaseURL}/api/v1/models/delete/${thunkAPI.getState().model.selectedModel._id}`);
-
-  if (response.status === 200 && response.data.message === "Model deleted successfully") {
+  try {
+    const modelId = thunkAPI.getState().model.selectedModel?._id || thunkAPI.getState().model.selectedModel?.id;
+    if (!modelId) return;
+    await supabaseApi.deleteModel(modelId);
     thunkAPI.dispatch(getAllModels());
-    payload.closeModal();
+    payload.closeModal?.();
+  } catch (err) {
+    console.error(err);
   }
 });
 

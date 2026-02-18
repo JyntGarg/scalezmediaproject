@@ -1,7 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import axios from "../../utils/axios";
-import { backendServerBaseURL } from "../../utils/backendServerBaseURL";
-import { readTasks } from "./dashboardSlice";
+import * as supabaseApi from "../../utils/supabaseApi";
 
 const initialState = {
   anayticsData: [],
@@ -9,18 +7,12 @@ const initialState = {
   ideaTest:{}
 };
 
-// Anaytics
 export const getAnayticsData = createAsyncThunk("anaytics/getAnayticsData", async (_, thunkAPI) => {
-  let config = {
-    params: {
-      span: thunkAPI.getState().anaytics.span,
-    },
-  };
-
-  let response = await axios.get(`${backendServerBaseURL}/api/v1/analytics/read`, config);
-
-  if (response.status === 200 && response.data.message === "Projects fetched successfully") {
-    thunkAPI.dispatch(updateanayticsData(response.data));
+  try {
+    const data = await supabaseApi.getAnalytics();
+    thunkAPI.dispatch(updateanayticsData({ ...data, message: "Projects fetched successfully" }));
+  } catch (err) {
+    console.error(err);
   }
 });
 

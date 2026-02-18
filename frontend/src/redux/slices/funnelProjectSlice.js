@@ -1,7 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import axios from "../../utils/axios";
-import { backendServerBaseURL } from "../../utils/backendServerBaseURL";
-import axiosInstance from "../../utils/axios";
+import * as supabaseApi from "../../utils/supabaseApi";
 
 const initialState = {
   allProjects: [],
@@ -11,40 +9,20 @@ const initialState = {
   scenarioId: 0,
 };
 
-// ----------------------- Project ----------------------- //
-
 export const createProject = createAsyncThunk(
   "funnelProject/createProject",
   async (payload, _) => {
-    const data = {
-      title: payload.title,
-      description: payload.description,
-    };
-
     try {
-      let response = await axiosInstance.post(
-        `${backendServerBaseURL}/api/v1/funnel-project`,
-        data
-      );
-
-      if (
-        response.status === 200 &&
-        response.data.message === "Project created successfully"
-      ) {
-        // Close the dialog if setIsCreateProjectOpen is provided
-        if (payload.setIsCreateProjectOpen) {
-          payload.setIsCreateProjectOpen(false);
-        } else if (payload.createNewProjectCloseRef?.current) {
-          // Fallback for old ref-based approach
-          payload.createNewProjectCloseRef.current.click();
-        }
-
-        const projectId = response.data.payload.project._id;
+      const result = await supabaseApi.createFunnelProject({ title: payload.title, description: payload.description });
+      if (result?.payload?.project) {
+        if (payload.setIsCreateProjectOpen) payload.setIsCreateProjectOpen(false);
+        else if (payload.createNewProjectCloseRef?.current) payload.createNewProjectCloseRef.current.click();
+        const projectId = result.payload.project._id || result.payload.project.id;
         localStorage.setItem("projectId", projectId);
         window.open(`/funnel/${projectId}`, "_self");
       }
     } catch (err) {
-      payload.setErrors({ afterSubmit: err.response.data.message });
+      payload.setErrors?.({ afterSubmit: err.message });
     }
   }
 );
@@ -52,27 +30,16 @@ export const createProject = createAsyncThunk(
 export const updateProject = createAsyncThunk(
   "funnelProject/updateProject",
   async (payload, _) => {
-    const data = {
-      title: payload.title,
-      description: payload.description,
-      processingRatePercent: payload.processingRatePercent,
-      perTransactionFee: payload.perTransactionFee,
-    };
-
     try {
-      let response = await axiosInstance.patch(
-        `${backendServerBaseURL}/api/v1/funnel-project/${payload.projectId}`,
-        data
-      );
-
-      if (
-        response.status === 200 &&
-        response.data.message === "Project updated successfully"
-      ) {
-        payload.editProjectCloseRef.current.click();
-      }
+      await supabaseApi.updateFunnelProject(payload.projectId, {
+        title: payload.title,
+        description: payload.description,
+        processingRatePercent: payload.processingRatePercent,
+        perTransactionFee: payload.perTransactionFee,
+      });
+      payload.editProjectCloseRef?.current?.click();
     } catch (err) {
-      payload.setErrors({ afterSubmit: err.response.data.message });
+      payload.setErrors?.({ afterSubmit: err.message });
     }
   }
 );
@@ -81,19 +48,10 @@ export const getAllProjects = createAsyncThunk(
   "funnelProject/getAllProjects",
   async (payload, thunkAPI) => {
     try {
-      let response = await axiosInstance.get(
-        `${backendServerBaseURL}/api/v1/funnel-project`
-      );
-
-      if (
-        response.status === 200 &&
-        response.data.message === "Projects list"
-      ) {
-        const allProjects = response.data.payload.projects;
-        thunkAPI.dispatch(updateAllProjects(allProjects));
-      }
+      const result = await supabaseApi.getFunnelProjects();
+      if (result?.payload?.projects) thunkAPI.dispatch(updateAllProjects(result.payload.projects));
     } catch (err) {
-      payload.setErrors({ afterSubmit: err.response.data.message });
+      payload.setErrors?.({ afterSubmit: err.message });
     }
   }
 );
@@ -102,32 +60,17 @@ export const deleteProject = createAsyncThunk(
   "funnelProject/deleteProject",
   async (payload, thunkAPI) => {
     try {
-      let response = await axiosInstance.delete(
-        `${backendServerBaseURL}/api/v1/funnel-project/${payload.projectId}`
-      );
-
-      if (
-        response.status === 200 &&
-        response.data.message === "Project deleted successfully"
-      ) {
-        payload.closeDeleteprojectModalRef.current.click();
-        thunkAPI.dispatch(getAllProjects());
-
-        let otherProjects = thunkAPI
-          .getState()
-          .project.allProjects.filter((p) => p._id != payload.projectId);
-
-        if (payload.projectId === payload.openedProjectId) {
-          window.open(
-            `/funnel/${otherProjects.length > 0 ? otherProjects[0]._id : "0"}`,
-            "_self"
-          );
-        } else {
-          window.open("/funnel/0", "_self");
-        }
+      await supabaseApi.deleteFunnelProject(payload.projectId);
+      payload.closeDeleteprojectModalRef?.current?.click();
+      thunkAPI.dispatch(getAllProjects());
+      const otherProjects = thunkAPI.getState().funnelProject.allProjects.filter((p) => (p._id || p.id) !== payload.projectId);
+      if (payload.projectId === payload.openedProjectId) {
+        window.open(`/funnel/${otherProjects.length > 0 ? (otherProjects[0]._id || otherProjects[0].id) : "0"}`, "_self");
+      } else {
+        window.open("/funnel/0", "_self");
       }
     } catch (err) {
-      payload.setErrors({ afterSubmit: err.response.data.message });
+      payload.setErrors?.({ afterSubmit: err.message });
     }
   }
 );
@@ -136,53 +79,28 @@ export const getSingleProject = createAsyncThunk(
   "funnelProject/getSingleProject",
   async (payload, thunkAPI) => {
     try {
-      let response = await axiosInstance.get(
-        `${backendServerBaseURL}/api/v1/funnel-project/${payload.projectId}`
-      );
-
-      if (response.status === 200) {
-        if (payload.setNodes) {
-          payload.setNodes((nds) => response.data.payload.scenario[0].nodes);
-        }
-
-        if (payload.setEdges) {
-          payload.setEdges((edgs) => response.data.payload.scenario[0].edges);
-        }
-
-        thunkAPI.dispatch(updatesingleProject(response.data.payload));
-        // if (thunkAPI.getState().project.scenarioId === 0) {
-        thunkAPI.dispatch(
-          updateScenarioId(response.data.payload.scenario[0]._id)
-        );
-        // }
+      const result = await supabaseApi.getFunnelProject(payload.projectId);
+      const pl = result?.payload;
+      if (pl?.scenario?.length) {
+        if (payload.setNodes) payload.setNodes(() => pl.scenario[0].nodes || []);
+        if (payload.setEdges) payload.setEdges(() => pl.scenario[0].edges || []);
+        thunkAPI.dispatch(updateScenarioId(pl.scenario[0]._id || pl.scenario[0].id));
       }
+      thunkAPI.dispatch(updatesingleProject(pl || null));
     } catch (err) {
-      payload.setErrors({ afterSubmit: err.response.data.message });
+      payload.setErrors?.({ afterSubmit: err.message });
     }
   }
 );
 
-// ----------------------- Scenario ----------------------- //
-
 export const createScenario = createAsyncThunk(
   "funnelProject/createScenario",
   async (payload, thunkAPI) => {
-    const data = {};
-
     try {
-      let response = await axiosInstance.post(
-        `${backendServerBaseURL}/api/v1/funnel-project/${payload.projectId}/scenario`,
-        data
-      );
-
-      if (
-        response.status === 200 &&
-        response.data.message === "Scenario created successfully"
-      ) {
-        thunkAPI.dispatch(getSingleProject({ projectId: payload.projectId }));
-      }
+      await supabaseApi.createFunnelScenario(payload.projectId);
+      thunkAPI.dispatch(getSingleProject({ projectId: payload.projectId }));
     } catch (err) {
-      payload.setErrors({ afterSubmit: err.response.data.message });
+      payload.setErrors?.({ afterSubmit: err.message });
     }
   }
 );
@@ -191,18 +109,10 @@ export const deleteScenario = createAsyncThunk(
   "funnelProject/deleteScenario",
   async (payload, thunkAPI) => {
     try {
-      let response = await axiosInstance.delete(
-        `${backendServerBaseURL}/api/v1/funnel-project/${payload.projectId}/scenario/${payload.scenarioId}`
-      );
-
-      if (
-        response.status === 200 &&
-        response.data.message === "Scenario deleted successfully"
-      ) {
-        thunkAPI.dispatch(getSingleProject({ projectId: payload.projectId }));
-      }
+      await supabaseApi.deleteFunnelScenario(payload.scenarioId);
+      thunkAPI.dispatch(getSingleProject({ projectId: payload.projectId }));
     } catch (err) {
-      payload.setErrors({ afterSubmit: err.response.data.message });
+      payload.setErrors?.({ afterSubmit: err.message });
     }
   }
 );

@@ -1,6 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import axios from "../../utils/axios";
-import { backendServerBaseURL } from "../../utils/backendServerBaseURL";
+import * as supabaseApi from "../../utils/supabaseApi";
 
 const initialState = {
   actionPlans: [],
@@ -15,20 +14,11 @@ const initialState = {
 export const getAllActionPlans = createAsyncThunk(
   "actionPlan/getAllActionPlans",
   async (_, thunkAPI) => {
-    let config = {
-      params: {},
-    };
-
-    let response = await axios.get(
-      `${backendServerBaseURL}/api/v1/plan/read`,
-      config
-    );
-
-    if (
-      response.status === 200 &&
-      response.data.message === "Plans fetched successfully"
-    ) {
-      thunkAPI.dispatch(updateActionPlans(response.data.plans));
+    try {
+      const result = await supabaseApi.getPlans();
+      if (result?.plans) thunkAPI.dispatch(updateActionPlans(result.plans));
+    } catch (err) {
+      console.error(err);
     }
   }
 );
@@ -36,20 +26,11 @@ export const getAllActionPlans = createAsyncThunk(
 export const getExternalActionPlans = createAsyncThunk(
   "actionPlan/getExternalActionPlans",
   async (_, thunkAPI) => {
-    let config = {
-      params: {},
-    };
-
-    let response = await axios.get(
-      `${backendServerBaseURL}/api/v1/plan/readExternal`,
-      config
-    );
-
-    if (
-      response.status === 200 &&
-      response.data.message === "Plans fetched successfully"
-    ) {
-      thunkAPI.dispatch(updateExternalActionPlans(response.data.plans));
+    try {
+      const result = await supabaseApi.getExternalPlans();
+      if (result?.plans) thunkAPI.dispatch(updateExternalActionPlans(result.plans));
+    } catch (err) {
+      console.error(err);
     }
   }
 );
@@ -57,19 +38,12 @@ export const getExternalActionPlans = createAsyncThunk(
 export const createActionPlan = createAsyncThunk(
   "actionPlan/createActionPlan",
   async (payload, thunkAPI) => {
-    let response = await axios.post(
-      `${backendServerBaseURL}/api/v1/plan/create`,
-      {
-        name: payload.name,
-      }
-    );
-
-    if (
-      response.status === 200 &&
-      response.data.message === "Plan created successfully"
-    ) {
+    try {
+      await supabaseApi.createPlan(payload.name);
       thunkAPI.dispatch(getAllActionPlans());
-      payload.closeModal();
+      payload.closeModal?.();
+    } catch (err) {
+      console.error(err);
     }
   }
 );
@@ -77,25 +51,15 @@ export const createActionPlan = createAsyncThunk(
 export const editActionPlan = createAsyncThunk(
   "actionPlan/editActionPlan",
   async (payload, thunkAPI) => {
-    let response = await axios.put(
-      `${backendServerBaseURL}/api/v1/plan/update/${
-        thunkAPI.getState().actionPlan.selectedActionPlan._id
-      }`,
-      {
-        name: payload.name,
-        isOpened: null,
-      }
-    );
-
-    console.log(response.data);
-    console.log(payload);
-    if (
-      response.status === 200 &&
-      response.data.message === "Plan updated successfully"
-    ) {
-      payload.closeModal();
+    try {
+      const planId = thunkAPI.getState().actionPlan.selectedActionPlan?._id || thunkAPI.getState().actionPlan.selectedActionPlan?.id;
+      if (!planId) return;
+      await supabaseApi.updatePlan(planId, { name: payload.name, isOpened: null });
+      payload.closeModal?.();
       thunkAPI.dispatch(getAllActionPlans());
       thunkAPI.dispatch(getExternalActionPlans());
+    } catch (err) {
+      console.error(err);
     }
   }
 );
@@ -103,23 +67,13 @@ export const editActionPlan = createAsyncThunk(
 export const updateIsOpenedForDoc = createAsyncThunk(
   "actionPlan/updateIsOpenedForDoc",
   async (payload, thunkAPI) => {
-    let response = await axios.put(
-      `${backendServerBaseURL}/api/v1/plan/update/${payload.actionPlanId}`,
-      {
-        name: payload.name,
-        isOpened: payload.isOpened,
-      }
-    );
-
-    console.log(response.data);
-    console.log(payload);
-    if (
-      response.status === 200 &&
-      response.data.message === "Plan updated successfully"
-    ) {
-      payload.closeModal();
+    try {
+      await supabaseApi.updatePlan(payload.actionPlanId, { name: payload.name, isOpened: payload.isOpened });
+      payload.closeModal?.();
       thunkAPI.dispatch(getAllActionPlans());
       thunkAPI.dispatch(getExternalActionPlans());
+    } catch (err) {
+      console.error(err);
     }
   }
 );
@@ -127,19 +81,15 @@ export const updateIsOpenedForDoc = createAsyncThunk(
 export const deleteActionPlan = createAsyncThunk(
   "actionPlan/deleteActionPlan",
   async (payload, thunkAPI) => {
-    let response = await axios.delete(
-      `${backendServerBaseURL}/api/v1/plan/delete/${
-        thunkAPI.getState().actionPlan.selectedActionPlan._id
-      }`
-    );
-
-    if (
-      response.status === 200 &&
-      response.data.message === "Plan deleted successfully"
-    ) {
+    try {
+      const planId = thunkAPI.getState().actionPlan.selectedActionPlan?._id || thunkAPI.getState().actionPlan.selectedActionPlan?.id;
+      if (!planId) return;
+      await supabaseApi.deletePlan(planId);
       thunkAPI.dispatch(getAllActionPlans());
       thunkAPI.dispatch(getExternalActionPlans());
-      payload.closeModal();
+      payload.closeModal?.();
+    } catch (err) {
+      console.error(err);
     }
   }
 );
@@ -147,23 +97,16 @@ export const deleteActionPlan = createAsyncThunk(
 export const addUsersToActionPlan = createAsyncThunk(
   "actionPlan/addUsersToActionPlan",
   async (payload, thunkAPI) => {
-    let response = await axios.post(
-      `${backendServerBaseURL}/api/v1/plan/addUser/${
-        thunkAPI.getState().actionPlan.selectedActionPlan._id
-      }`,
-      {
-        users: payload.users.map((u) => u._id),
-        copyTextAllowed: payload.copyTextAllowed,
-      }
-    );
-
-    if (
-      response.status === 200 &&
-      response.data.message === "Users added successfully"
-    ) {
-      payload.closeModal();
+    try {
+      const planId = thunkAPI.getState().actionPlan.selectedActionPlan?._id || thunkAPI.getState().actionPlan.selectedActionPlan?.id;
+      if (!planId) return;
+      const userIds = (payload.users || []).map((u) => u._id || u.id);
+      await supabaseApi.addUsersToPlan(planId, userIds, payload.copyTextAllowed);
+      payload.closeModal?.();
       thunkAPI.dispatch(getAllActionPlans());
       thunkAPI.dispatch(getExternalActionPlans());
+    } catch (err) {
+      console.error(err);
     }
   }
 );
@@ -171,19 +114,12 @@ export const addUsersToActionPlan = createAsyncThunk(
 export const markActionPlan = createAsyncThunk(
   "actionPlan/markActionPlan",
   async (payload, thunkAPI) => {
-    let response = await axios.patch(
-      `${backendServerBaseURL}/api/v1/plan/mark/${payload.actionPlanId}`,
-      {
-        checked: payload.checked,
-      }
-    );
-
-    if (
-      response.status === 200 &&
-      response.data.message === "Plan updated successfully"
-    ) {
+    try {
+      await supabaseApi.markPlan(payload.actionPlanId, payload.checked);
       thunkAPI.dispatch(getAllActionPlans());
       thunkAPI.dispatch(getExternalActionPlans());
+    } catch (err) {
+      console.error(err);
     }
   }
 );
@@ -192,21 +128,14 @@ export const markActionPlan = createAsyncThunk(
 export const createcategory = createAsyncThunk(
   "actionPlan/createcategory",
   async (payload, thunkAPI) => {
-    let response = await axios.post(
-      `${backendServerBaseURL}/api/v1/category/create`,
-      {
-        name: payload.name,
-        plan: thunkAPI.getState().actionPlan.selectedActionPlan._id,
-      }
-    );
-
-    if (
-      response.status === 200 &&
-      response.data.message === "Category created successfully"
-    ) {
+    try {
+      const planId = thunkAPI.getState().actionPlan.selectedActionPlan?._id || thunkAPI.getState().actionPlan.selectedActionPlan?.id;
+      if (!planId) return;
+      await supabaseApi.createCategory(payload.name, planId);
       thunkAPI.dispatch(getAllActionPlans());
-      payload.closeModal();
-      // Note: DOM manipulation removed as it's no longer needed with shadcn/ui components
+      payload.closeModal?.();
+    } catch (err) {
+      console.error(err);
     }
   }
 );
@@ -214,24 +143,14 @@ export const createcategory = createAsyncThunk(
 export const editcategory = createAsyncThunk(
   "actionPlan/editcategory",
   async (payload, thunkAPI) => {
-    let response = await axios.post(
-      `${backendServerBaseURL}/api/v1/category/update/${
-        thunkAPI.getState().actionPlan.selectedCategory._id
-      }`,
-      {
-        name: payload.name,
-        isOpened: null,
-      }
-    );
-
-    console.log(response.data);
-    console.log(payload);
-    if (
-      response.status === 200 &&
-      response.data.message === "Category updated successfully"
-    ) {
-      payload.closeModal();
+    try {
+      const categoryId = thunkAPI.getState().actionPlan.selectedCategory?._id || thunkAPI.getState().actionPlan.selectedCategory?.id;
+      if (!categoryId) return;
+      await supabaseApi.updateCategory(categoryId, { name: payload.name, isOpened: null });
+      payload.closeModal?.();
       thunkAPI.dispatch(getAllActionPlans());
+    } catch (err) {
+      console.error(err);
     }
   }
 );
@@ -239,22 +158,12 @@ export const editcategory = createAsyncThunk(
 export const updateIsOpenedForCategory = createAsyncThunk(
   "actionPlan/updateIsOpenedForCategory",
   async (payload, thunkAPI) => {
-    let response = await axios.post(
-      `${backendServerBaseURL}/api/v1/category/update/${payload.categoryId}`,
-      {
-        name: payload.name,
-        isOpened: payload.isOpened,
-      }
-    );
-
-    console.log(response.data);
-    console.log(payload);
-    if (
-      response.status === 200 &&
-      response.data.message === "Category updated successfully"
-    ) {
-      payload.closeModal();
+    try {
+      await supabaseApi.updateCategory(payload.categoryId, { name: payload.name, isOpened: payload.isOpened });
+      payload.closeModal?.();
       thunkAPI.dispatch(getAllActionPlans());
+    } catch (err) {
+      console.error(err);
     }
   }
 );
@@ -262,19 +171,14 @@ export const updateIsOpenedForCategory = createAsyncThunk(
 export const deletecategory = createAsyncThunk(
   "actionPlan/deletecategory",
   async (payload, thunkAPI) => {
-    let response = await axios.delete(
-      `${backendServerBaseURL}/api/v1/category/delete/${
-        thunkAPI.getState().actionPlan.selectedCategory._id
-      }`
-    );
-
-    if (
-      response.status === 200 &&
-      response.data.message === "Category deleted successfully"
-    ) {
+    try {
+      const categoryId = thunkAPI.getState().actionPlan.selectedCategory?._id || thunkAPI.getState().actionPlan.selectedCategory?.id;
+      if (!categoryId) return;
+      await supabaseApi.deleteCategory(categoryId);
       thunkAPI.dispatch(getAllActionPlans());
-      payload.closeModal();
-      // Note: DOM manipulation removed as it's no longer needed with shadcn/ui components
+      payload.closeModal?.();
+    } catch (err) {
+      console.error(err);
     }
   }
 );
@@ -282,16 +186,12 @@ export const deletecategory = createAsyncThunk(
 export const markCategory = createAsyncThunk(
   "actionPlan/markCategory",
   async (payload, thunkAPI) => {
-    let response = await axios.patch(
-      `${backendServerBaseURL}/api/v1/category/mark/${payload.categoryId}`,
-      {
-        checked: payload.checked,
-      }
-    );
-
-    if (response.status === 200) {
+    try {
+      await supabaseApi.markCategory(payload.categoryId, payload.checked);
       thunkAPI.dispatch(getAllActionPlans());
       thunkAPI.dispatch(getExternalActionPlans());
+    } catch (err) {
+      console.error(err);
     }
   }
 );
@@ -300,17 +200,13 @@ export const markCategory = createAsyncThunk(
 export const readPointer = createAsyncThunk(
   "actionPlan/readPointer",
   async (payload, thunkAPI) => {
-    let response = await axios.get(
-      `${backendServerBaseURL}/api/v1/content/read/${payload.pointerId}`
-    );
-
-    if (
-      response.status === 200 &&
-      response.data.message === "Content fetched successfully"
-    ) {
+    try {
+      const result = await supabaseApi.getContentById(payload.pointerId);
+      thunkAPI.dispatch(updatesinglePointerInfo(result?.content ?? null));
       thunkAPI.dispatch(getAllActionPlans());
-      thunkAPI.dispatch(updatesinglePointerInfo(response.data.content));
-      payload.closeModal();
+      payload.closeModal?.();
+    } catch (err) {
+      console.error(err);
     }
   }
 );
@@ -318,21 +214,15 @@ export const readPointer = createAsyncThunk(
 export const createpointer = createAsyncThunk(
   "actionPlan/createpointer",
   async (payload, thunkAPI) => {
-    let response = await axios.post(
-      `${backendServerBaseURL}/api/v1/content/create`,
-      {
-        name: payload.name,
-        plan: thunkAPI.getState().actionPlan.selectedActionPlan._id,
-        category: thunkAPI.getState().actionPlan.selectedCategory._id,
-      }
-    );
-
-    if (
-      response.status === 200 &&
-      response.data.message === "Content created successfully"
-    ) {
+    try {
+      const planId = thunkAPI.getState().actionPlan.selectedActionPlan?._id || thunkAPI.getState().actionPlan.selectedActionPlan?.id;
+      const categoryId = thunkAPI.getState().actionPlan.selectedCategory?._id || thunkAPI.getState().actionPlan.selectedCategory?.id;
+      if (!planId || !categoryId) return;
+      await supabaseApi.createContent({ name: payload.name, plan: planId, category: categoryId });
       thunkAPI.dispatch(getAllActionPlans());
-      payload.closeModal();
+      payload.closeModal?.();
+    } catch (err) {
+      console.error(err);
     }
   }
 );
@@ -340,26 +230,13 @@ export const createpointer = createAsyncThunk(
 export const editpointer = createAsyncThunk(
   "actionPlan/editpointer",
   async (payload, thunkAPI) => {
-    let response = await axios.put(
-      `${backendServerBaseURL}/api/v1/content/update/${payload.pointerId}`,
-      {
-        name: payload.name,
-        data: payload.data,
-        isOpened: null,
-      }
-    );
-
-    console.log(response.data);
-    console.log(payload);
-    if (
-      response.status === 200 &&
-      response.data.message === "Content updated successfully"
-    ) {
-      if (payload.navigate) {
-        payload.navigate("/action-plans");
-      }
+    try {
+      await supabaseApi.updateContent(payload.pointerId, { name: payload.name, data: payload.data, isOpened: null });
+      if (payload.navigate) payload.navigate("/action-plans");
       thunkAPI.dispatch(getAllActionPlans());
-      payload.closeModal();
+      payload.closeModal?.();
+    } catch (err) {
+      console.error(err);
     }
   }
 );
@@ -367,24 +244,12 @@ export const editpointer = createAsyncThunk(
 export const updateIsOpenedForPointer = createAsyncThunk(
   "actionPlan/updateIsOpenedForPointer",
   async (payload, thunkAPI) => {
-    let response = await axios.put(
-      `${backendServerBaseURL}/api/v1/content/update/${payload.pointerId}`,
-      {
-        name: payload.name,
-        data: payload.data,
-        isOpened: payload.isOpened,
-      }
-    );
-
-    console.log(response.data);
-    console.log(payload);
-    if (
-      response.status === 200 &&
-      response.data.message === "Content updated successfully"
-    ) {
+    try {
+      await supabaseApi.updateContent(payload.pointerId, { name: payload.name, data: payload.data, isOpened: payload.isOpened });
       thunkAPI.dispatch(getAllActionPlans());
-
-      payload.closeModal();
+      payload.closeModal?.();
+    } catch (err) {
+      console.error(err);
     }
   }
 );
@@ -392,18 +257,14 @@ export const updateIsOpenedForPointer = createAsyncThunk(
 export const deletepointer = createAsyncThunk(
   "actionPlan/deletepointer",
   async (payload, thunkAPI) => {
-    let response = await axios.delete(
-      `${backendServerBaseURL}/api/v1/content/delete/${
-        thunkAPI.getState().actionPlan.selectedPointer._id
-      }`
-    );
-
-    if (
-      response.status === 200 &&
-      response.data.message === "Content deleted successfully"
-    ) {
+    try {
+      const pointerId = thunkAPI.getState().actionPlan.selectedPointer?._id || thunkAPI.getState().actionPlan.selectedPointer?.id;
+      if (!pointerId) return;
+      await supabaseApi.deleteContent(pointerId);
       thunkAPI.dispatch(getAllActionPlans());
-      payload.closeModal();
+      payload.closeModal?.();
+    } catch (err) {
+      console.error(err);
     }
   }
 );
@@ -411,19 +272,12 @@ export const deletepointer = createAsyncThunk(
 export const markPointer = createAsyncThunk(
   "actionPlan/markPointer",
   async (payload, thunkAPI) => {
-    let response = await axios.patch(
-      `${backendServerBaseURL}/api/v1/content/mark/${payload.contentId}`,
-      {
-        checked: payload.checked,
-      }
-    );
-
-    if (
-      response.status === 200 &&
-      response.data.message === "Content updated successfully"
-    ) {
+    try {
+      await supabaseApi.markContent(payload.contentId, payload.checked);
       thunkAPI.dispatch(getAllActionPlans());
       thunkAPI.dispatch(getExternalActionPlans());
+    } catch (err) {
+      console.error(err);
     }
   }
 );

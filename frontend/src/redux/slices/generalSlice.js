@@ -1,8 +1,8 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 import { backendServerBaseURL } from "../../utils/backendServerBaseURL";
-import axios2 from "../../utils/axios";
 import { supabase } from "../../utils/supabaseClient";
+import * as supabaseApi from "../../utils/supabaseApi";
 
 const initialState = {
   me: null,
@@ -125,22 +125,15 @@ export const loginUser = createAsyncThunk("general/login", async (payload, thunk
 
 export const registerUser = createAsyncThunk("general/register", async (payload, thunkAPI) => {
   try {
-    // We still call the backend for registration because it handles:
-    // 1. Supabase Auth creation
-    // 2. Database profile creation
-    // 3. Email normalization
-    // 4. Role assignment
-    let response = await axios.post(`${backendServerBaseURL}/api/v1/auth/create`, {
+    const result = await supabaseApi.registerUser({
       firstName: payload.firstName,
       lastName: payload.lastName,
-      email: payload.workEmail,
+      workEmail: payload.workEmail,
       password: payload.password,
-      organization: payload.companyName,
-      designation: "Owner",
+      companyName: payload.companyName,
     });
 
-    if (response.status === 201) {
-      // After registration, log them in directly
+    if (result?.user) {
       thunkAPI.dispatch(loginUser({
         email: payload.workEmail,
         password: payload.password,
@@ -150,7 +143,7 @@ export const registerUser = createAsyncThunk("general/register", async (payload,
     }
   } catch (err) {
     console.error("❌ Registration Error:", err);
-    const errorMessage = err.response?.data?.message || "Registration failed. Please try again.";
+    const errorMessage = err.message || err.response?.data?.message || "Registration failed. Please try again.";
     payload.setErrors({ afterSubmit: errorMessage });
     return thunkAPI.rejectWithValue(errorMessage);
   }
@@ -179,14 +172,14 @@ export const completeProfile = createAsyncThunk("general/completeProfile", async
 });
 export const readIncompleteProfile = createAsyncThunk("general/readIncompleteProfile", async (payload, thunkAPI) => {
   try {
-    let response = await axios.get(`${backendServerBaseURL}/api/v1/auth/readIncompleteProfile/${payload.token}`);
-    if (response.status === 200 && response.data.message === "User retrieved successfully") {
-      thunkAPI.dispatch(readIncomplete(response.data));
-      payload.formik.setFieldValue("firstName", response.data?.user?.firstName)
-      payload.formik.setFieldValue("lastName", response.data?.user?.lastName)
+    const result = await supabaseApi.readIncompleteProfile(payload.token);
+    if (result?.user) {
+      thunkAPI.dispatch(readIncomplete({ user: result.user, message: result.message }));
+      payload.formik?.setFieldValue("firstName", result.user?.firstName);
+      payload.formik?.setFieldValue("lastName", result.user?.lastName);
     }
   } catch (err) {
-    payload.setErrors({ afterSubmit: err.response.data.message });
+    payload.setErrors({ afterSubmit: err.message });
   }
 });
 

@@ -1,27 +1,14 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "../../utils/axios";
-import { backendServerBaseURL } from "../../utils/backendServerBaseURL";
+import * as supabaseApi from "../../utils/supabaseApi";
 
-// Async thunks for API calls
 export const getAllNorthStarMetrics = createAsyncThunk(
   "northStarMetrics/getAll",
   async ({ projectId }, thunkAPI) => {
     try {
-      const url = `${backendServerBaseURL}/api/v1/projects/${projectId}/north-star-metrics`;
-      console.log('🌐 Fetching metrics from:', url);
-      const response = await axios.get(url);
-      console.log('📥 API Response:', {
-        projectId,
-        url,
-        status: response.status,
-        dataCount: response.data?.count,
-        dataLength: response.data?.data?.length,
-        metrics: response.data?.data?.map(m => ({ id: m._id, name: m.name }))
-      });
-      return response.data;
+      return await supabaseApi.getNorthStarMetrics(projectId);
     } catch (error) {
       console.error("Error fetching North Star Metrics:", error);
-      return thunkAPI.rejectWithValue(error.response?.data?.message || "Failed to fetch North Star Metrics");
+      return thunkAPI.rejectWithValue(error.message || "Failed to fetch North Star Metrics");
     }
   }
 );
@@ -30,25 +17,22 @@ export const getActiveNorthStarMetrics = createAsyncThunk(
   "northStarMetrics/getActive",
   async ({ projectId }, thunkAPI) => {
     try {
-      const response = await axios.get(`${backendServerBaseURL}/api/v1/projects/${projectId}/north-star-metrics/active`);
-      return response.data;
+      return await supabaseApi.getActiveNorthStarMetrics(projectId);
     } catch (error) {
       console.error("Error fetching active North Star Metrics:", error);
-      return thunkAPI.rejectWithValue(error.response?.data?.message || "Failed to fetch active North Star Metrics");
+      return thunkAPI.rejectWithValue(error.message || "Failed to fetch active North Star Metrics");
     }
   }
 );
-
 
 export const getNorthStarMetricById = createAsyncThunk(
   "northStarMetrics/getById",
   async ({ projectId, id }, thunkAPI) => {
     try {
-      const response = await axios.get(`${backendServerBaseURL}/api/v1/projects/${projectId}/north-star-metrics/${id}`);
-      return response.data;
+      return await supabaseApi.getNorthStarMetricById(projectId, id);
     } catch (error) {
       console.error("Error fetching North Star Metric:", error);
-      return thunkAPI.rejectWithValue(error.response?.data?.message || "Failed to fetch North Star Metric");
+      return thunkAPI.rejectWithValue(error.message || "Failed to fetch North Star Metric");
     }
   }
 );
@@ -57,11 +41,10 @@ export const createNorthStarMetric = createAsyncThunk(
   "northStarMetrics/create",
   async ({ projectId, ...metricData }, thunkAPI) => {
     try {
-      const response = await axios.post(`${backendServerBaseURL}/api/v1/projects/${projectId}/north-star-metrics`, metricData);
-      return response.data;
+      return await supabaseApi.createNorthStarMetric(projectId, metricData);
     } catch (error) {
       console.error("Error creating North Star Metric:", error);
-      return thunkAPI.rejectWithValue(error.response?.data?.message || "Failed to create North Star Metric");
+      return thunkAPI.rejectWithValue(error.message || "Failed to create North Star Metric");
     }
   }
 );
@@ -70,11 +53,10 @@ export const updateNorthStarMetric = createAsyncThunk(
   "northStarMetrics/update",
   async ({ projectId, id, metricData }, thunkAPI) => {
     try {
-      const response = await axios.put(`${backendServerBaseURL}/api/v1/projects/${projectId}/north-star-metrics/${id}`, metricData);
-      return response.data;
+      return await supabaseApi.updateNorthStarMetric(projectId, id, metricData);
     } catch (error) {
       console.error("Error updating North Star Metric:", error);
-      return thunkAPI.rejectWithValue(error.response?.data?.message || "Failed to update North Star Metric");
+      return thunkAPI.rejectWithValue(error.message || "Failed to update North Star Metric");
     }
   }
 );
@@ -83,11 +65,10 @@ export const updateNorthStarMetricValue = createAsyncThunk(
   "northStarMetrics/updateValue",
   async ({ projectId, id, valueData }, thunkAPI) => {
     try {
-      const response = await axios.patch(`${backendServerBaseURL}/api/v1/projects/${projectId}/north-star-metrics/${id}/value`, valueData);
-      return response.data;
+      return await supabaseApi.updateNorthStarMetricValue(projectId, id, valueData);
     } catch (error) {
       console.error("Error updating North Star Metric value:", error);
-      return thunkAPI.rejectWithValue(error.response?.data?.message || "Failed to update North Star Metric value");
+      return thunkAPI.rejectWithValue(error.message || "Failed to update North Star Metric value");
     }
   }
 );
@@ -96,11 +77,11 @@ export const deleteNorthStarMetric = createAsyncThunk(
   "northStarMetrics/delete",
   async ({ projectId, id }, thunkAPI) => {
     try {
-      await axios.delete(`${backendServerBaseURL}/api/v1/projects/${projectId}/north-star-metrics/${id}`);
+      await supabaseApi.deleteNorthStarMetric(projectId, id);
       return id;
     } catch (error) {
       console.error("Error deleting North Star Metric:", error);
-      return thunkAPI.rejectWithValue(error.response?.data?.message || "Failed to delete North Star Metric");
+      return thunkAPI.rejectWithValue(error.message || "Failed to delete North Star Metric");
     }
   }
 );
@@ -109,11 +90,10 @@ export const getSelectedNorthStarMetric = createAsyncThunk(
   "northStarMetrics/getSelected",
   async ({ projectId }, thunkAPI) => {
     try {
-      const response = await axios.get(`${backendServerBaseURL}/api/v1/projects/${projectId}/north-star-metrics/selected`);
-      return response.data;
+      return await supabaseApi.getSelectedNorthStarMetric(projectId);
     } catch (error) {
       console.error("Error fetching selected North Star Metric:", error);
-      return thunkAPI.rejectWithValue(error.response?.data?.message || "Failed to fetch selected North Star Metric");
+      return thunkAPI.rejectWithValue(error.message || "Failed to fetch selected North Star Metric");
     }
   }
 );
@@ -122,13 +102,10 @@ export const setSelectedNorthStarMetric = createAsyncThunk(
   "northStarMetrics/setSelected",
   async ({ projectId, metricId }, thunkAPI) => {
     try {
-      const response = await axios.post(`${backendServerBaseURL}/api/v1/projects/${projectId}/north-star-metrics/selected`, {
-        metricId: metricId || null
-      });
-      return response.data;
+      return await supabaseApi.setSelectedNorthStarMetric(projectId, metricId);
     } catch (error) {
       console.error("Error setting selected North Star Metric:", error);
-      return thunkAPI.rejectWithValue(error.response?.data?.message || "Failed to set selected North Star Metric");
+      return thunkAPI.rejectWithValue(error.message || "Failed to set selected North Star Metric");
     }
   }
 );
@@ -181,8 +158,8 @@ const northStarMetricSlice = createSlice({
           fullPayload: action.payload
         });
         // Find and set selected metric if available
-        if (action.payload.selectedMetricId) {
-          const selectedMetric = state.metrics.find(m => m._id === action.payload.selectedMetricId);
+        if (action.payload?.selectedMetricId) {
+          const selectedMetric = state.metrics.find(m => (m._id || m.id) === action.payload.selectedMetricId);
           if (selectedMetric) {
             state.selectedMetric = selectedMetric;
           }
