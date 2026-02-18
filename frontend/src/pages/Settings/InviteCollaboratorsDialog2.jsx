@@ -50,7 +50,7 @@ function InviteCollaboratorsDialog2() {
               </div>
 
               <div className="mb-3">
-                <label htmlFor="">Select Project</label>
+                <label className="form-label">Select Project</label>
                 <select className="form-select" ref={projectRef}>
                   {projects.map((project) => {
                     return <option value={project._id}>{project.name}</option>;

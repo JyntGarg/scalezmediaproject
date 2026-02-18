@@ -210,7 +210,7 @@ function CreateGoogleIntegrationDialog({ integrateBtn, goalId, keyMetricId }) {
                 {selectedMenu === "Select Metric" && (
                   <>
                     <div className="mb-2">
-                      <label htmlFor="" className="body2 mb-1">
+                      <label className="body2 mb-1">
                         Connect a Goal
                       </label>
                       <select
@@ -225,12 +225,12 @@ function CreateGoogleIntegrationDialog({ integrateBtn, goalId, keyMetricId }) {
                           return <option key={singleGoal._id} value={singleGoal._id}>{singleGoal.name}</option>;
                         })}
                       </select>
-                      <label htmlFor="" className="text-secondary">
+                      <label className="text-secondary">
                         Select a goal you want to connect
                       </label>
                     </div>
 
-                    <label htmlFor="" className="body2 mb-1">
+                    <label className="body2 mb-1">
                       Connect a Metric
                     </label>
                     <select
@@ -244,7 +244,7 @@ function CreateGoogleIntegrationDialog({ integrateBtn, goalId, keyMetricId }) {
                         return <option value={keyMetric._id}>{keyMetric.name}</option>;
                       })}
                     </select>
-                    <label htmlFor="" className="text-secondary">
+                    <label className="text-secondary">
                       Select a keymetric you want to connect
                     </label>
 
@@ -290,7 +290,7 @@ function CreateGoogleIntegrationDialog({ integrateBtn, goalId, keyMetricId }) {
                     {/* <pre id="content" style="white-space: pre-wrap"></pre> */}
 
                     <>
-                      <label htmlFor="" className="body2 mb-1">
+                      <label className="body2 mb-1">
                         Link Google Spreadsheet
                       </label>
                       <input
@@ -328,7 +328,7 @@ function CreateGoogleIntegrationDialog({ integrateBtn, goalId, keyMetricId }) {
                 {selectedMenu === "Configure" && (
                   <>
                     {/* <div className="mb-2">
-                      <label htmlFor="" className="body2 mb-1">
+                      <label className="body2 mb-1">
                         Sheet
                       </label>
                       <select
@@ -342,11 +342,11 @@ function CreateGoogleIntegrationDialog({ integrateBtn, goalId, keyMetricId }) {
                           return <option value={keyMetric._id}>{keyMetric.name}</option>;
                         })}
                       </select>
-                      <label htmlFor="">Select a sheet in your Google Sheet document.</label>
+                      <label>Select a sheet in your Google Sheet document.</label>
                     </div> */}
 
                     <div className="mb-2">
-                      <label htmlFor="" className="body2 mb-1">
+                      <label className="body2 mb-1">
                         Date Column
                       </label>
                       <select
@@ -360,14 +360,14 @@ function CreateGoogleIntegrationDialog({ integrateBtn, goalId, keyMetricId }) {
                           return <option value={colName}>{colName}</option>;
                         })}
                       </select>
-                      <label htmlFor="">
+                      <span className="text-secondary text-sm">
                         Date column that will be used to record the Metric measurement and to look for new data. The date column should be formatted
                         as a “Date” or “Date Time”.
-                      </label>
+                      </span>
                     </div>
 
                     <div className="mb-2">
-                      <label htmlFor="" className="body2 mb-1">
+                      <label className="body2 mb-1">
                         Value Column
                       </label>
                       <select
@@ -381,7 +381,7 @@ function CreateGoogleIntegrationDialog({ integrateBtn, goalId, keyMetricId }) {
                           return <option value={colName}>{colName}</option>;
                         })}
                       </select>
-                      <label htmlFor="">A numerical value column for the value of your metric.</label>
+                      <span className="text-secondary text-sm">A numerical value column for the value of your metric.</span>
                     </div>
 
                     <div className="d-flex justify-content-end mt-3">

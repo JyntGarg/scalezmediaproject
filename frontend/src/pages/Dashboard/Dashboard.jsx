@@ -24,7 +24,7 @@ import {
 } from "../../redux/slices/projectSlice";
 import AddWidgetDialog from "./AddWidgetDialog";
 import { formatDate2, formatTime } from "../../utils/formatTime";
-import { backendServerBaseURL } from "../../utils/backendServerBaseURL";
+import { backendServerBaseURL, getAssetUrl } from "../../utils/backendServerBaseURL";
 import AvatarGroup from "../../components/common/AvatarGroup";
 import { getAllUsers, selectAllUsers } from "../../redux/slices/settingSlice";
 import { getMe, selectMe } from "../../redux/slices/generalSlice";
@@ -115,11 +115,6 @@ function Dashboard() {
   const meFromRedux = useSelector(selectMe);
   const meFromStorage = JSON.parse(localStorage.getItem("user") || "{}");
   const me = meFromRedux || meFromStorage;
-  console.log('me Dashboard:>> ', me);
-  console.log('me firstName:>> ', me?.firstName);
-
-  console.log('me name:>> ', me?.name);
-  console.log('me email:>> ', me?.email);
   const projects = useSelector(selectProjects);
 
   // State declarations - must be before filterDataByProject
@@ -148,7 +143,6 @@ function Dashboard() {
     (goal) => goal?.project?.team.includes(me?.id || me?._id)
 
   );
-  console.log('isUserInGoalsProjectTeam:>> ', isUserInGoalsProjectTeam)
   const testsData = useSelector(selecttestsData);
   // console.log('testsData :>> ', testsData);
   const isUserInTestsProjectTeam = testsData.filter(
@@ -237,14 +231,6 @@ function Dashboard() {
     return testDate.toDateString() === today.toDateString() && (t.status === 'Completed' || t.status === 'Ready to analyze');
   });
 
-  // Debug logs
-  console.log("goalsData :>> ", goalsData);
-  console.log("ideasData :>> ", ideasData);
-  console.log("testsData :>> ", testsData);
-  console.log("learningsData :>> ", learningsData);
-  console.log("projects :>> ", projects);
-  console.log("allUsers :>> ", allUsers);
-
   const [activeGoalsSelectedProject, setactiveGoalsSelectedProject] =
     useState("");
   const [recentideasSelectedProject, setrecentideasSelectedProject] =
@@ -257,7 +243,6 @@ function Dashboard() {
   // Dynamic welcome message based on time
   const getWelcomeMessage = () => {
     const hour = new Date().getHours();
-    console.log('Current hour:', hour);
     if (hour < 12) return "Good morning";
     if (hour < 17) return "Good afternoon";
     return "Good evening";
@@ -515,7 +500,7 @@ function Dashboard() {
                 const testStatus = relatedTest?.status || 'Running';
                 // Get owner user data
                 const ownerUser = idea.createdBy || allUsers.find(u => u._id === idea.owner);
-                const ownerAvatar = ownerUser?.avatar ? `${backendServerBaseURL}/${ownerUser.avatar}` : null;
+                const ownerAvatar = getAssetUrl(ownerUser?.avatar) || null;
                 const ownerName = ownerUser ? `${ownerUser.firstName || ''} ${ownerUser.lastName || ''}`.trim() : 'Unknown';
 
                 // Calculate days left from test due date or total duration
@@ -741,7 +726,7 @@ function Dashboard() {
                                     >
                                       {memberData?.avatar ? (
                                         <img
-                                          src={`${backendServerBaseURL}/${memberData.avatar}`}
+                                          src={getAssetUrl(memberData?.avatar) || undefined}
                                           alt={memberName}
                                           className="w-full h-full object-cover"
                                         />
@@ -977,7 +962,7 @@ function Dashboard() {
 
                     // Get owner user data
                     const ownerUser = idea.createdBy || allUsers.find(u => u._id === idea.owner);
-                    const ownerAvatar = ownerUser?.avatar ? `${backendServerBaseURL}/${ownerUser.avatar}` : null;
+                    const ownerAvatar = getAssetUrl(ownerUser?.avatar) || null;
                     const ownerName = ownerUser ? `${ownerUser.firstName || ''} ${ownerUser.lastName || ''}`.trim() : 'Unknown';
 
                     const getStatusColor = (status) => {

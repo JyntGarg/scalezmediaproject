@@ -61,7 +61,7 @@ export const getAllProjects = createAsyncThunk("project/getAllProjects", async (
 
     let query = supabase
       .from('projects')
-      .select('*, workspace_owners(*)')
+      .select('*')
       .eq('owner_id', ownerId);
 
     const status = thunkAPI.getState().project.projectSelectedTab;

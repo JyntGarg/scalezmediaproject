@@ -11,7 +11,7 @@ import {
   updateProjectStatus,
   updateSelectedProject,
 } from "../../redux/slices/projectSlice";
-import { backendServerBaseURL } from "../../utils/backendServerBaseURL";
+import { backendServerBaseURL, getAssetUrl } from "../../utils/backendServerBaseURL";
 import { formatTime } from "../../utils/formatTime";
 import { hasPermission_create_project, isTypeOwner, isRoleAdmin, hasPermission_delete_project } from "../../utils/permissions";
 import CreateNewProjectDialog from "./CreateNewProjectDialog";
@@ -243,10 +243,10 @@ function Projects() {
                           {/* Members */}
                           <TableCell className="py-4">
                             <AvatarGroup
-                              listOfUrls={project.team?.map((t) => `${backendServerBaseURL}/${t?.avatar}`)}
+                              listOfUrls={project.team?.map((t) => getAssetUrl(t?.avatar))}
                               userName={project.team?.map((t) => [
                                 t?.firstName,
-                                `${backendServerBaseURL}/${t?.avatar}`,
+                                getAssetUrl(t?.avatar),
                                 t?.lastName,
                               ])}
                               show={3}

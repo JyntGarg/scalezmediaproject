@@ -55,20 +55,20 @@ function App() {
   const [faviconUrl, setFaviconUrl] = useState(defaultFavicon);
 
   useEffect(() => {
-    const favicon = getFaviconEl(); // Accessing favicon element
+    const favicon = getFaviconEl();
     if (
       storeFavicon === undefined ||
       storeFavicon === "" ||
-      storeFavicon === null
+      storeFavicon === null ||
+      String(storeFavicon) === "null"
     ) {
       setFaviconUrl(defaultFavicon);
-      // favicon.href = faviconUrl
     } else {
-      const normalizedPath = storeFavicon.startsWith('/') ? storeFavicon : `/${storeFavicon}`;
+      const normalizedPath = storeFavicon.startsWith("/") ? storeFavicon : `/${storeFavicon}`;
       setFaviconUrl(`${backendServerBaseURL}${normalizedPath}`);
     }
-    favicon.href = faviconUrl;
-  }, [faviconUrl]);
+    if (favicon) favicon.href = faviconUrl;
+  }, [faviconUrl, storeFavicon]);
 
   useEffect(() => {
     async function setTheme() {

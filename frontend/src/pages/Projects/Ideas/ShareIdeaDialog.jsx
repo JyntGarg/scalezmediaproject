@@ -28,7 +28,7 @@ function ShareIdeaDialog() {
                 </div>
 
                 <div>
-                  <label htmlFor="" className="body2">
+                  <label className="body2">
                     Private Link
                   </label>
                   <input
@@ -42,7 +42,7 @@ function ShareIdeaDialog() {
                 </div>
 
                 <div>
-                  <label htmlFor="" className="body2">
+                  <label className="body2">
                     Public Link
                   </label>
                   <input

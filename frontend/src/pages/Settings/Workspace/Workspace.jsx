@@ -184,7 +184,7 @@ function Workspace() {
                 })}
               </select>
 
-              <label htmlFor="">We recommend your select a timezone where most of your team resides.</label>
+              <span className="text-muted-foreground text-sm">We recommend you select a timezone where most of your team resides.</span>
             </div>
 
             <hr />

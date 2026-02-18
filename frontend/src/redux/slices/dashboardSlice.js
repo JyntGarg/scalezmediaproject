@@ -187,7 +187,7 @@ export const readTests = createAsyncThunk("dashboard/readTests", async (_, thunk
   }
 });
 
-// Notifications
+// Notifications - use notification_audience join (matches backend; no sender embed to avoid PGRST200)
 export const readNotifications = createAsyncThunk("dashboard/readNotifications", async (_, thunkAPI) => {
   try {
     const { data: { user: authUser } } = await supabase.auth.getUser();
@@ -195,12 +195,12 @@ export const readNotifications = createAsyncThunk("dashboard/readNotifications",
 
     const { data, error } = await supabase
       .from('notifications')
-      .select('*, sender:sender_id(*)')
-      .eq('recipient_id', authUser.id)
+      .select('*, notification_audience!inner(*)')
+      .eq('notification_audience.user_id', authUser.id)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    thunkAPI.dispatch(updatenotifications(data));
+    thunkAPI.dispatch(updatenotifications(data || []));
   } catch (error) {
     console.error("Error fetching notifications:", error);
   }

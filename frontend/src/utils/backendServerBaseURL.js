@@ -17,9 +17,9 @@ export let backendServerBaseURL = tempbackendServerBaseURL;
 export let socketURL = tempsocketURL;
 export let frontURL = tempFrontEndURL;
 
-/** Full URL for avatar/logo/fevicon. Use for display only. Supabase Storage returns full URLs; legacy paths use backend. */
+/** Full URL for avatar/logo/fevicon. Use for display only. Supabase Storage returns full URLs; legacy paths use backend. Never returns .../null. */
 export function getAssetUrl(path) {
-  if (!path) return "";
+  if (path == null || path === "" || String(path) === "null") return "";
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
   const normalized = path.startsWith("/") ? path : `/${path}`;
   return `${tempbackendServerBaseURL}${normalized}`;

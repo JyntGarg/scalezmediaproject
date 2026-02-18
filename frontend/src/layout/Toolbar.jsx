@@ -13,7 +13,7 @@ import {
   selectProjects,
 } from "../redux/slices/projectSlice";
 import { selectAllUsers } from "../redux/slices/settingSlice";
-import { backendServerBaseURL } from "../utils/backendServerBaseURL";
+import { backendServerBaseURL, getAssetUrl } from "../utils/backendServerBaseURL";
 import { formatTime } from "../utils/formatTime";
 import { Settings, FileText, LogOut, ChevronDown, User, BarChart3, FolderOpen, Activity, TrendingUp, Bell, Menu, X, Check, Star } from "lucide-react";
 import ThemeToggle from "../components/ThemeToggle";
@@ -242,7 +242,7 @@ function Toolbar({ socket }) {
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center space-x-2 focus:outline-none hover:opacity-80 transition-opacity p-1 rounded-md hover:bg-muted">
                   <img
-                    src={`${backendServerBaseURL}/${me?.avatar}`}
+                    src={getAssetUrl(me?.avatar) || undefined}
                     alt="Profile"
                     className="w-8 h-8 rounded-full border-2 border-border hover:border-foreground/20 transition-colors"
                   />
@@ -254,7 +254,7 @@ function Toolbar({ socket }) {
                 <DropdownMenuLabel className="px-4 py-3 border-b border-border">
                   <div className="flex items-center space-x-3">
                     <img
-                      src={`${backendServerBaseURL}/${me?.avatar}`}
+                      src={getAssetUrl(me?.avatar) || undefined}
                       alt="Profile"
                       className="w-10 h-10 rounded-full"
                     />
@@ -354,7 +354,7 @@ function Toolbar({ socket }) {
                       return notification?.audience?.includes(me?.id) ? (
                         <div key={notification._id} className="flex items-start space-x-1 p-1 rounded hover:bg-muted/50 transition-colors">
                           <Avatar className="h-5 w-5">
-                            <AvatarImage src={`${backendServerBaseURL}/${me.avatar}`} />
+                            <AvatarImage src={getAssetUrl(me?.avatar) || undefined} />
                             <AvatarFallback>
                               {me?.firstName?.[0]}{me?.lastName?.[0]}
                             </AvatarFallback>
