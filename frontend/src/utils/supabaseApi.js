@@ -597,14 +597,14 @@ export async function getNorthStarMetrics(projectId) {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Unauthorized");
 
-  const { data: project, error: projErr } = await supabase.from("projects").select("owner_id, team, created_by, selected_north_star_metric").eq("id", projectId).single();
+  const { data: project, error: projErr } = await supabase.from("projects").select("*").eq("id", projectId).single();
   if (projErr || !project) throw new Error("Project not found");
   const team = project.team || [];
-  const hasAccess = project.owner_id === userId || team.includes(userId) || project.created_by === userId;
+  const hasAccess = project.owner_id === userId || (Array.isArray(team) && team.includes(userId)) || project.created_by === userId;
   if (!hasAccess) throw new Error("You don't have access to this project's North Star Metrics");
 
   const { data: metrics, error } = await supabase
-    .from("northstarmetrics")
+    .from("north_star_metrics")
     .select("*, createdBy:users!created_by(id, first_name, last_name, avatar), lastUpdatedBy:users!last_updated_by(id, first_name, last_name, avatar)")
     .eq("project_id", projectId)
     .order("created_at", { ascending: false });
@@ -617,7 +617,7 @@ export async function getNorthStarMetrics(projectId) {
 
 export async function getActiveNorthStarMetrics(projectId) {
   const { data, error } = await supabase
-    .from("northstarmetrics")
+    .from("north_star_metrics")
     .select("*")
     .eq("project_id", projectId)
     .eq("is_active", true)
@@ -628,7 +628,7 @@ export async function getActiveNorthStarMetrics(projectId) {
 
 export async function getNorthStarMetricById(projectId, id) {
   const { data, error } = await supabase
-    .from("northstarmetrics")
+    .from("north_star_metrics")
     .select("*, createdBy:users!created_by(*), lastUpdatedBy:users!last_updated_by(*)")
     .eq("project_id", projectId)
     .eq("id", id)
@@ -660,7 +660,7 @@ export async function createNorthStarMetric(projectId, metricData) {
   };
 
   const { data, error } = await supabase
-    .from("northstarmetrics")
+    .from("north_star_metrics")
     .insert(row)
     .select("*, createdBy:users!created_by(*), lastUpdatedBy:users!last_updated_by(*)")
     .single();
@@ -687,7 +687,7 @@ export async function updateNorthStarMetric(projectId, id, metricData) {
   updates.last_updated_by = userId;
 
   const { data, error } = await supabase
-    .from("northstarmetrics")
+    .from("north_star_metrics")
     .update(updates)
     .eq("id", id)
     .eq("project_id", projectId)
@@ -701,7 +701,7 @@ export async function updateNorthStarMetricValue(projectId, id, valueData) {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Unauthorized");
 
-  const { data: metric, error: fetchErr } = await supabase.from("northstarmetrics").select("value_history, current_value").eq("id", id).eq("project_id", projectId).single();
+  const { data: metric, error: fetchErr } = await supabase.from("north_star_metrics").select("value_history, current_value").eq("id", id).eq("project_id", projectId).single();
   if (fetchErr || !metric) throw new Error("North Star Metric not found");
 
   const history = Array.isArray(metric.value_history) ? metric.value_history : [];
@@ -709,7 +709,7 @@ export async function updateNorthStarMetricValue(projectId, id, valueData) {
   history.push({ date: new Date(), value: newValue, updated_by: userId });
 
   const { data: updated, error } = await supabase
-    .from("northstarmetrics")
+    .from("north_star_metrics")
     .update({ current_value: newValue, value_history: history, last_updated_by: userId })
     .eq("id", id)
     .eq("project_id", projectId)
@@ -720,7 +720,7 @@ export async function updateNorthStarMetricValue(projectId, id, valueData) {
 }
 
 export async function deleteNorthStarMetric(projectId, id) {
-  const { error } = await supabase.from("northstarmetrics").delete().eq("id", id).eq("project_id", projectId);
+  const { error } = await supabase.from("north_star_metrics").delete().eq("id", id).eq("project_id", projectId);
   if (error) throw error;
   await supabase.from("projects").update({ selected_north_star_metric: null }).eq("selected_north_star_metric", id);
   return id;
@@ -730,7 +730,7 @@ export async function getSelectedNorthStarMetric(projectId) {
   const { data: project } = await supabase.from("projects").select("selected_north_star_metric").eq("id", projectId).single();
   const metricId = project?.selected_north_star_metric ?? null;
   if (!metricId) return { success: true, data: null };
-  const { data } = await supabase.from("northstarmetrics").select("*").eq("id", metricId).eq("project_id", projectId).single();
+  const { data } = await supabase.from("north_star_metrics").select("*").eq("id", metricId).eq("project_id", projectId).single();
   return { success: true, data: data ? mapNorthStarMetric(data) : null };
 }
 

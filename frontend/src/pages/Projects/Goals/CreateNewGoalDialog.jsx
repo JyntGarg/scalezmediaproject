@@ -27,7 +27,7 @@ function CreateNewGoalDialog({ openRequestIdeaDialog, selectedTab, open, onOpenC
   const [selectedMenu, setselectedMenu] = useState(selectedTab);
   const params = useParams();
   const openedProject = JSON.parse(localStorage.getItem("openedProject", "") || "{}");
-  const projectId = params.projectId || openedProject?._id;
+  const projectId = params.projectId || openedProject?.id || openedProject?._id;
   const goalId = params.goalId;
   const dispatch = useDispatch();
   const projectUsers = useSelector(selectProjectUsers);
@@ -288,16 +288,8 @@ console.log('e.target.value :>> ', e.target.value);
     setisSubmitting(true);
 
     try {
-      // Get projectId with fallback
-      const currentProjectId = params.projectId || openedProject?._id;
-
-      console.log("Creating goal with projectId:", currentProjectId);
-      console.log("URL params.projectId:", params.projectId);
-      console.log("openedProject:", openedProject);
-      console.log("openedProject._id:", openedProject?._id);
-      console.log("keyMetricsFormik.values:", keyMetricsFormik.values);
-      console.log("aboutGoalFormik.values:", aboutGoalFormik.values);
-      console.log("confidenceFormik.values:", confidenceFormik.values);
+      // Get projectId with fallback (Supabase uses `id`, legacy may use `_id`)
+      const currentProjectId = params.projectId || openedProject?.id || openedProject?._id;
 
     if (selectedGoal) {
       await dispatch(

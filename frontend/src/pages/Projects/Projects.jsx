@@ -209,11 +209,11 @@ function Projects() {
                       })
                       ?.map((project) => (
                         <TableRow
-                          key={project._id}
+                          key={project.id || project._id}
                           className="cursor-pointer hover:bg-muted/50 transition-colors border-b"
                           onClick={() => {
                             localStorage.setItem("openedProject", JSON.stringify(project));
-                            navigate(`/projects/${project._id}/goals`);
+                            navigate(`/projects/${project.id || project._id}/goals`);
                           }}
                         >
                           {/* Name */}
@@ -290,28 +290,28 @@ function Projects() {
                                 <DropdownMenuContent align="start">
                                   <DropdownMenuItem
                                     onClick={() => {
-                                      dispatch(updateProjectStatus({ status: "Not Defined", projectId: project._id }));
+                                      dispatch(updateProjectStatus({ status: "Not Defined", projectId: project.id || project._id }));
                                     }}
                                   >
                                     Not Defined
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     onClick={() => {
-                                      dispatch(updateProjectStatus({ status: "Active", projectId: project._id }));
+                                      dispatch(updateProjectStatus({ status: "Active", projectId: project.id || project._id }));
                                     }}
                                   >
                                     Active
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     onClick={() => {
-                                      dispatch(updateProjectStatus({ status: "Completed", projectId: project._id }));
+                                      dispatch(updateProjectStatus({ status: "Completed", projectId: project.id || project._id }));
                                     }}
                                   >
                                     Completed
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     onClick={() => {
-                                      dispatch(updateProjectStatus({ status: "On Hold", projectId: project._id }));
+                                      dispatch(updateProjectStatus({ status: "On Hold", projectId: project.id || project._id }));
                                     }}
                                   >
                                     On Hold
@@ -356,7 +356,7 @@ function Projects() {
                                   <DropdownMenuItem
                                     onClick={() => {
                                       localStorage.setItem("openedProject", JSON.stringify(project));
-                                      navigate(`/projects/${project._id}`);
+                                      navigate(`/projects/${project.id || project._id}`);
                                     }}
                                   >
                                     Open Project
@@ -374,7 +374,7 @@ function Projects() {
                                   {!project.isArchived && (
                                     <DropdownMenuItem
                                       onClick={() => {
-                                        dispatch(archiveProject({ projectId: project._id }));
+                                        dispatch(archiveProject({ projectId: project.id || project._id }));
                                       }}
                                     >
                                       Archive Project
@@ -383,7 +383,7 @@ function Projects() {
                                   {project.isArchived && (
                                     <DropdownMenuItem
                                       onClick={() => {
-                                        dispatch(unarchiveProject({ projectId: project._id }));
+                                        dispatch(unarchiveProject({ projectId: project.id || project._id }));
                                       }}
                                     >
                                       Unarchive Project

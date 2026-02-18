@@ -263,16 +263,15 @@ function Dashboard() {
     }, 2000);
   }, []);
 
+  // Hide loader once we have any data or projects list is loaded (don't force loader back on when data is empty)
   useEffect(() => {
-    if (goalsData.length || testsData.length || learningsData.length || ideasData.length || !projects.length) {
-      setTimeout(() => {
-        setShowLoader(false);
-      }, 2000);
-
-    } else {
-      setShowLoader(true);
+    const hasAnyData = goalsData.length || testsData.length || learningsData.length || ideasData.length;
+    const noProjects = !projects.length;
+    if (hasAnyData || noProjects) {
+      const t = setTimeout(() => setShowLoader(false), 500);
+      return () => clearTimeout(t);
     }
-  }, [goalsData, testsData, learningsData, ideasData]);
+  }, [goalsData, testsData, learningsData, ideasData, projects.length]);
 
   // Close dropdown when clicking outside
   useEffect(() => {

@@ -485,8 +485,11 @@ function ProjectNorthStarMetrics() {
   };
 
   const getProgressPercentage = (current, target) => {
-    if (target === 0) return 0;
-    return Math.min((current / target) * 100, 100);
+    const c = Number(current);
+    const t = Number(target);
+    if (t === 0 || !Number.isFinite(t)) return 0;
+    if (!Number.isFinite(c)) return 0;
+    return Math.min((c / t) * 100, 100);
   };
 
   const getTrendIcon = (trend) => {
@@ -585,7 +588,7 @@ function ProjectNorthStarMetrics() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600 dark:text-gray-400">Progress</span>
                   <span className="font-medium">
-                    {currentMetric.currentValue.toLocaleString()} / {currentMetric.targetValue.toLocaleString()} {currentMetric.unit}
+                    {(currentMetric.currentValue ?? 0).toLocaleString()} / {(currentMetric.targetValue ?? 0).toLocaleString()} {currentMetric.unit ?? ''}
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -615,19 +618,19 @@ function ProjectNorthStarMetrics() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                 <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {currentMetric.currentValue.toLocaleString()}
+                    {(currentMetric.currentValue ?? 0).toLocaleString()}
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">Current Value</div>
                 </div>
                 <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {currentMetric.targetValue.toLocaleString()}
+                    {(currentMetric.targetValue ?? 0).toLocaleString()}
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">Target Value</div>
                 </div>
                 <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {currentMetric.trendPercentage > 0 ? '+' : ''}{currentMetric.trendPercentage.toFixed(1)}%
+                    {(currentMetric.trendPercentage ?? 0) > 0 ? '+' : ''}{(currentMetric.trendPercentage ?? 0).toFixed(1)}%
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">Trend</div>
                 </div>
@@ -708,9 +711,8 @@ function ProjectNorthStarMetrics() {
                 </TableRow>
               ) : (
                 <>
-                  {console.log('📊 Rendering metrics:', northStarMetrics.length, northStarMetrics.map(m => ({ id: m._id, name: m.name })))}
-                  {northStarMetrics.map((metric) => (
-                    <TableRow key={metric._id}>
+                  {northStarMetrics.filter(Boolean).map((metric) => (
+                    <TableRow key={metric._id ?? metric.id}>
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       {getMetricIcon(metric.metricType)}
@@ -722,12 +724,12 @@ function ProjectNorthStarMetrics() {
                   </TableCell>
                   <TableCell>
                     <div className="font-medium">
-                      {metric.currentValue.toLocaleString()} {metric.unit}
+                      {(metric.currentValue ?? 0).toLocaleString()} {metric.unit ?? ''}
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="font-medium">
-                      {metric.targetValue.toLocaleString()} {metric.unit}
+                      {(metric.targetValue ?? 0).toLocaleString()} {metric.unit ?? ''}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -745,7 +747,7 @@ function ProjectNorthStarMetrics() {
                     <div className="flex items-center space-x-1">
                       {getTrendIcon(metric.trend)}
                       <span className={`text-sm ${getTrendColor(metric.trend)}`}>
-                        {metric.trendPercentage > 0 ? '+' : ''}{metric.trendPercentage.toFixed(1)}%
+                        {(metric.trendPercentage ?? 0) > 0 ? '+' : ''}{(metric.trendPercentage ?? 0).toFixed(1)}%
                       </span>
                     </div>
                   </TableCell>
@@ -1074,7 +1076,7 @@ function ProjectNorthStarMetrics() {
                           <div>
                             <div className="font-medium text-sm">{metric.name}</div>
                             <div className="text-xs text-gray-500 dark:text-gray-400">
-                              {metric.currentValue.toLocaleString()} / {metric.targetValue.toLocaleString()} {metric.unit}
+                              {(metric.currentValue ?? 0).toLocaleString()} / {(metric.targetValue ?? 0).toLocaleString()} {metric.unit ?? ''}
                             </div>
                           </div>
                         </div>

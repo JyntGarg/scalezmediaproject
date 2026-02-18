@@ -36,11 +36,11 @@ function CreateNewIdeaDialog({ selectedGoal, isOpen = false, onClose }) {
   const dispatch = useDispatch();
   const mediaAndDocRef = useRef();
   const params = useParams();
-  const projectId = params.projectId;
+  const openedProject = JSON.parse(localStorage.getItem("openedProject") || "{}");
+  const projectId = params.projectId || openedProject?.id || openedProject?._id;
   const testId = params.testId;
   const ideaId = params.ideaId;
   const goals = useSelector(selectGoals);
-  console.log('goals# :>> ', goals);
   const allGrowthLevers = useSelector(selectallGrowthLevers);
   const modules = {
     toolbar: [
@@ -55,7 +55,6 @@ function CreateNewIdeaDialog({ selectedGoal, isOpen = false, onClose }) {
   const closeRef2 = useRef();
   const allKeyMetrics = useSelector(selectkeyMetrics);
   const selectedIdea = useSelector(selectSelectedIdea);
-  console.log('selectedIdea :>> ', selectedIdea);
   const [mediaActionsOverlay, setmediaActionsOverlay] = useState(null);
   const formats = ["header", "bold", "italic", "underline", "strike", "blockquote", "list", "bullet", "indent", "link", "image"];
   const [viewingFile, setViewingFile] = useState(null);
@@ -169,7 +168,7 @@ function CreateNewIdeaDialog({ selectedGoal, isOpen = false, onClose }) {
     aboutGoalFormik.resetForm({
       values: {
         name: "",
-        goal: selectedGoal ? selectedGoal?._id : "",
+        goal: selectedGoal ? (selectedGoal?._id ?? selectedGoal?.id) : "",
         keyMetric: "",
         lever: "",
         description: "",
@@ -229,11 +228,13 @@ function CreateNewIdeaDialog({ selectedGoal, isOpen = false, onClose }) {
   };
 
   useEffect(() => {
-    dispatch(getAllGoals({ projectId }));
+    if (projectId) {
+      dispatch(getAllGoals({ projectId }));
+    }
     dispatch(getAllkeyMetrics());
     dispatch(getAllGrowthLevers());
     dispatch(readSingleIdea());
-  }, []);
+  }, [dispatch, projectId]);
 
   // Scroll modal into view when it opens
   useEffect(() => {
@@ -253,8 +254,8 @@ function CreateNewIdeaDialog({ selectedGoal, isOpen = false, onClose }) {
     if (selectedIdea) {
       aboutGoalFormik.setValues({
         name: selectedIdea.name,
-        goal: selectedIdea.goal?._id,
-        keyMetric: selectedIdea?.keymetric,
+        goal: selectedIdea.goal?._id ?? selectedIdea.goal?.id,
+        keyMetric: selectedIdea?.keymetric ?? selectedIdea?.keymetric_id,
         lever: selectedIdea.lever,
         description: selectedIdea.description,
         files: selectedIdea.media
@@ -269,7 +270,7 @@ function CreateNewIdeaDialog({ selectedGoal, isOpen = false, onClose }) {
     } else {
       aboutGoalFormik.setValues({
         name: "",
-        goal: selectedGoal ? selectedGoal?._id : "",
+        goal: selectedGoal ? (selectedGoal?._id ?? selectedGoal?.id) : "",
         keyMetric: "",
         lever: "",
         description: "",
@@ -290,8 +291,8 @@ function CreateNewIdeaDialog({ selectedGoal, isOpen = false, onClose }) {
     if (isOpen && selectedIdea) {
       aboutGoalFormik.setValues({
         name: selectedIdea.name || "",
-        goal: selectedIdea.goal?._id || "",
-        keyMetric: selectedIdea?.keymetric || "",
+        goal: selectedIdea.goal?._id ?? selectedIdea.goal?.id ?? "",
+        keyMetric: selectedIdea?.keymetric ?? selectedIdea?.keymetric_id ?? "",
         lever: selectedIdea.lever || "",
         description: selectedIdea.description || "",
         files: selectedIdea.media || []
@@ -323,7 +324,7 @@ function CreateNewIdeaDialog({ selectedGoal, isOpen = false, onClose }) {
       aboutGoalFormik.resetForm({
         values: {
           name: "",
-          goal: selectedGoal ? selectedGoal?._id : "",
+          goal: selectedGoal ? (selectedGoal?._id ?? selectedGoal?.id) : "",
           keyMetric: "",
           lever: "",
           description: "",
@@ -486,11 +487,13 @@ function CreateNewIdeaDialog({ selectedGoal, isOpen = false, onClose }) {
                                 <SelectValue placeholder="Select a Goal" className="truncate" />
                               </SelectTrigger>
                               <SelectContent className="max-h-[300px]">
-                                {goals.map((goal) => {
+                                {(goals || []).map((goal) => {
+                                  const goalId = goal._id ?? goal.id;
+                                  if (!goalId) return null;
                                   return (
                                     <SelectItem
-                                      key={goal._id}
-                                      value={goal._id}
+                                      key={goalId}
+                                      value={goalId}
                                       className="cursor-pointer"
                                       title={goal.name}
                                     >
@@ -523,22 +526,26 @@ function CreateNewIdeaDialog({ selectedGoal, isOpen = false, onClose }) {
                               <SelectContent className="max-h-[300px]">
                                 {aboutGoalFormik.values.goal !== "" &&
                                     aboutGoalFormik.values.goal !== null &&
-                                    goals
-                                      .filter((g) => g._id === aboutGoalFormik.values.goal)
+                                    (goals || [])
+                                      .filter((g) => (g._id ?? g.id) === aboutGoalFormik.values.goal)
                                       .map((goal) => (
-                                        <React.Fragment key={goal._id}>
-                                          {goal.keymetric.map((keymetric) => (
-                                            <SelectItem
-                                              key={keymetric._id}
-                                              value={keymetric._id}
-                                              className="cursor-pointer"
-                                              title={keymetric.name}
-                                            >
-                                              <span className="truncate block">
-                                                {keymetric.name}
-                                              </span>
-                                            </SelectItem>
-                                          ))}
+                                        <React.Fragment key={goal._id ?? goal.id}>
+                                          {(goal.keymetric || []).map((keymetric) => {
+                                            const kmId = keymetric._id ?? keymetric.id;
+                                            if (!kmId) return null;
+                                            return (
+                                              <SelectItem
+                                                key={kmId}
+                                                value={kmId}
+                                                className="cursor-pointer"
+                                                title={keymetric.name}
+                                              >
+                                                <span className="truncate block">
+                                                  {keymetric.name}
+                                                </span>
+                                              </SelectItem>
+                                            );
+                                          })}
                                         </React.Fragment>
                                       ))}
                               </SelectContent>
