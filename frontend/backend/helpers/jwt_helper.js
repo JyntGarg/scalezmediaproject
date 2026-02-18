@@ -23,9 +23,15 @@ module.exports = {
       const { data, error } = await supabase.auth.getUser(token);
 
       if (error || !data.user) {
-        console.error("Supabase verification error:", error?.message);
+        const errorMsg = error?.message || "Unauthorized";
+        console.error("Supabase verification error:", errorMsg);
+
+        // Ensure "jwt expired" is returned for the frontend interceptor to handle logout cleanly
+        const isExpired = errorMsg.toLowerCase().includes("expired");
+
         return res.status(401).json({
-          message: error?.message === 'JWT expired' ? "jwt expired" : "Unauthorized",
+          message: isExpired ? "jwt expired" : "Unauthorized",
+          debug: process.env.NODE_ENV === 'development' ? errorMsg : undefined
         });
       }
 

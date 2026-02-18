@@ -995,6 +995,7 @@ module.exports = {
         message: "User retrieved successfully",
         user,
         token: token,
+        version: "1.0.2-unified-auth-v2", // Diagnostic marker
       });
     } catch (err) {
       next(err);

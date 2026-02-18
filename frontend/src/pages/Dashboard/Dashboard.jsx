@@ -113,7 +113,7 @@ function Dashboard() {
   const tasksCompleted = useSelector(selecttasksCompleted);
   const checkins = useSelector(selectcheckins);
   const meFromRedux = useSelector(selectMe);
-  const meFromStorage = JSON.parse(localStorage.getItem("userData") || "{}");
+  const meFromStorage = JSON.parse(localStorage.getItem("user") || "{}");
   const me = meFromRedux || meFromStorage;
   console.log('me Dashboard:>> ', me);
   console.log('me firstName:>> ', me?.firstName);

@@ -16,8 +16,8 @@ export const getMe = createAsyncThunk("general/getMe", async (_, thunkAPI) => {
 
     if (response.status === 200 && response.data.message === "User retrieved successfully") {
       // localStorage.setItem("accessToken", response.data.token);
-      localStorage.setItem("userData", JSON.stringify(response.data.user));
-      console.log('userData', response.data.user);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+      console.log('user', response.data.user);
       // let projects = JSON.parse(localStorage.getItem("projectsData"));
       // console.log('projects.length', projects)
 
@@ -49,7 +49,7 @@ export const getMe = createAsyncThunk("general/getMe", async (_, thunkAPI) => {
       //   window.reload();
       // }
 
-      thunkAPI.dispatch(updateMe(JSON.parse(localStorage.getItem("userData") || "{}")));
+      thunkAPI.dispatch(updateMe(JSON.parse(localStorage.getItem("user") || "{}")));
 
 
       // Dispatch the updateMe action with the updated userData
@@ -78,6 +78,7 @@ export const loginUser = createAsyncThunk("general/login", async (payload, thunk
     // 2. Store session details
     const { session, user: authUser } = data;
     localStorage.setItem("accessToken", session.access_token);
+    // Note: The profile is fetched via getMe() which sets the 'user' key
 
     // 3. Fetch user profile from our backend/database
     // We can call getMe now to sync state
