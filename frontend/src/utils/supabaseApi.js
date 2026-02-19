@@ -804,6 +804,14 @@ export async function deleteModel(modelId) {
 }
 
 // ---- Analytics ----
+function safeCount(res) {
+  if (res.error) {
+    console.warn("Analytics count query error:", res.error.message, res.error.details);
+    return 0;
+  }
+  return res.count ?? 0;
+}
+
 export async function getAnalytics() {
   const ownerId = await getOwnerId();
   if (!ownerId) throw new Error("Unauthorized");
@@ -816,6 +824,8 @@ export async function getAnalytics() {
     supabase.from("learnings").select("*", { count: "exact", head: true }).eq("owner_id", ownerId),
   ]);
 
+  if (projectsRes.error) throw projectsRes.error;
+
   const [recentIdeas, recentTests, recentLearnings] = await Promise.all([
     supabase.from("ideas").select("*").eq("owner_id", ownerId).order("created_at", { ascending: false }).limit(10),
     supabase.from("tests").select("*").eq("owner_id", ownerId).order("created_at", { ascending: false }).limit(10),
@@ -825,10 +835,10 @@ export async function getAnalytics() {
   return {
     projects: projectsRes.data || [],
     counts: {
-      goals: goalsRes.count ?? 0,
-      ideas: ideasRes.count ?? 0,
-      tests: testsRes.count ?? 0,
-      learnings: learningsRes.count ?? 0,
+      goals: safeCount(goalsRes),
+      ideas: safeCount(ideasRes),
+      tests: safeCount(testsRes),
+      learnings: safeCount(learningsRes),
     },
     recentActivity: {
       ideas: recentIdeas.data || [],

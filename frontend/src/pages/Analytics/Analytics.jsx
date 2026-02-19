@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { getAnayticsData, selectanayticsData, updatespan, ideaTestData } from "../../redux/slices/anayticsSlice";
+import { getAnayticsData, selectanayticsData, selectAnalyticsCounts, updatespan, ideaTestData } from "../../redux/slices/anayticsSlice";
 import { formatDate2, formatTime } from "../../utils/formatTime";
 import { CSVLink } from "react-csv";
 import { backendServerBaseURL } from "../../utils/backendServerBaseURL";
@@ -15,6 +15,7 @@ function Analytics() {
   const [selectedMenu, setselectedMenu] = useState("All");
   const dispatch = useDispatch();
   const analyticsData = useSelector(selectanayticsData);
+  const analyticsCounts = useSelector(selectAnalyticsCounts);
   const ideaTest = useSelector(ideaTestData);
   const [csvData, setcsvData] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -28,40 +29,43 @@ function Analytics() {
   };
 
   const countAllGoals = () => {
+    if (analyticsCounts?.goals != null && Number.isFinite(analyticsCounts.goals)) return analyticsCounts.goals;
     let totalGoals = 0;
-    analyticsData.forEach((project) => {
-      totalGoals += project.goals;
+    (analyticsData || []).forEach((project) => {
+      totalGoals += Number(project?.goals) || 0;
     });
-    return totalGoals;
+    return Number.isFinite(totalGoals) ? totalGoals : 0;
   };
 
   const countAllWorkedLearnings = () => {
     let totalWorkedLearnings = 0;
-    analyticsData.forEach((project) => {
-      totalWorkedLearnings += project.workedLearnings;
+    (analyticsData || []).forEach((project) => {
+      totalWorkedLearnings += Number(project?.workedLearnings) || 0;
     });
-    return totalWorkedLearnings;
+    return Number.isFinite(totalWorkedLearnings) ? totalWorkedLearnings : 0;
   };
 
   const countAllDidntWorkedLearnings = () => {
     let totalDidntWorkedLearnings = 0;
-    analyticsData.forEach((project) => {
-      totalDidntWorkedLearnings += project.didntWorkedLearnings;
+    (analyticsData || []).forEach((project) => {
+      totalDidntWorkedLearnings += Number(project?.didntWorkedLearnings) || 0;
     });
-    return totalDidntWorkedLearnings;
+    return Number.isFinite(totalDidntWorkedLearnings) ? totalDidntWorkedLearnings : 0;
   };
 
   const inconclusiveLearningsCount = () => {
-    const total = analyticsData.reduce((acc, project) => {
-      return acc + project.inconclusiveLearnings;
+    const total = (analyticsData || []).reduce((acc, project) => {
+      return acc + (Number(project?.inconclusiveLearnings) || 0);
     }, 0);
-    return total;
+    return Number.isFinite(total) ? total : 0;
   };
 
   const learingAcquired = () => {
-    let total = countAllDidntWorkedLearnings() + countAllWorkedLearnings() + inconclusiveLearningsCount();
-    return total;
+    const total = countAllDidntWorkedLearnings() + countAllWorkedLearnings() + inconclusiveLearningsCount();
+    return Number.isFinite(total) ? total : 0;
   };
+
+  const safeNum = (v) => (v != null && Number.isFinite(Number(v)) ? Number(v) : 0);
 
   // ECharts configurations - Clean and consistent with other pages
   const ideasAndTestsChartOption = {
@@ -600,14 +604,14 @@ function Analytics() {
                       </TableCell>
                       <TableCell>{formatTime(singleProject.createdAt)}</TableCell>
                       <TableCell>{formatTime(singleProject.updatedAt)}</TableCell>
-                      <TableCell>{singleProject.goals}</TableCell>
-                      <TableCell>{singleProject.ideaCount}</TableCell>
-                      <TableCell>{singleProject.ideaTest}</TableCell>
-                      <TableCell>{singleProject.ideaSuccessful}</TableCell>
-                      <TableCell>{singleProject.ideaUnsuccessful}</TableCell>
-                      <TableCell>{singleProject.ideaInconclusive}</TableCell>
-                      <TableCell>{singleProject.learnings}</TableCell>
-                      <TableCell>{singleProject.team?.length + 1}</TableCell>
+                      <TableCell>{safeNum(singleProject.goals)}</TableCell>
+                      <TableCell>{safeNum(singleProject.ideaCount)}</TableCell>
+                      <TableCell>{safeNum(singleProject.ideaTest)}</TableCell>
+                      <TableCell>{safeNum(singleProject.ideaSuccessful)}</TableCell>
+                      <TableCell>{safeNum(singleProject.ideaUnsuccessful)}</TableCell>
+                      <TableCell>{safeNum(singleProject.ideaInconclusive)}</TableCell>
+                      <TableCell>{safeNum(singleProject.learnings)}</TableCell>
+                      <TableCell>{(singleProject?.team?.length ?? 0) + 1}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

@@ -3,6 +3,7 @@ import * as supabaseApi from "../../utils/supabaseApi";
 
 const initialState = {
   anayticsData: [],
+  counts: null,
   span: "2weeks",
   ideaTest:{}
 };
@@ -25,8 +26,9 @@ export const anayticsSlice = createSlice({
   initialState,
   reducers: {
     updateanayticsData: (state, action) => {
-      console.log(action.payload)
-      state.anayticsData = action.payload.projects;
+      console.log(action.payload);
+      state.anayticsData = action.payload.projects ?? [];
+      state.counts = action.payload.counts ?? null;
       state.ideaTest.idea=action.payload.idea
       state.ideaTest.test=action.payload.test
       state.ideaTest.learning=action.payload.learning
@@ -52,6 +54,7 @@ export const anayticsSlice = createSlice({
 export const { updateanayticsData, updatespan } = anayticsSlice.actions;
 
 export const selectanayticsData = (state) => state.anaytics.anayticsData;
+export const selectAnalyticsCounts = (state) => state.anaytics.counts;
 export const ideaTestData = (state) => state.anaytics.ideaTest;
 // export const ideaData = (state) => state.anaytics.idea;
 export const selectspan = (state) => state.anaytics.span;
