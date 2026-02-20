@@ -854,7 +854,7 @@ function Insights() {
               <CardContent className="p-6">
                 <div className="flex items-center gap-1 mb-2">
                   <p className="text-sm text-muted-foreground">Learnings Acquired</p>
-                  <span title={`Successful: ${growthData?.userData[0]?.workedLearnings}\nUnsuccessful: ${growthData?.userData[0]?.didntWorkedLearnings}\nInconclusive: ${growthData?.userData[0]?.inconclusiveLearnings}`}>
+                  <span title={`Successful: ${growthData?.userData?.[0]?.workedLearnings ?? 0}\nUnsuccessful: ${growthData?.userData?.[0]?.didntWorkedLearnings ?? 0}\nInconclusive: ${growthData?.userData?.[0]?.inconclusiveLearnings ?? 0}`}>
                     <img src="/static/icons/info.svg" alt="" className="w-3 h-3 ml-1" />
                   </span>
                 </div>

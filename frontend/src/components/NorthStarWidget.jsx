@@ -40,7 +40,10 @@ function NorthStarWidget({ selectedProject }) {
   }, [dispatch, projectId]);
 
   const getProgressPercentage = (current, target) => {
-    return Math.min((current / target) * 100, 100);
+    const c = Number(current) || 0;
+    const t = Number(target) || 1;
+    if (t === 0) return 0;
+    return Math.min((c / t) * 100, 100);
   };
 
   const getTrendIcon = (trend) => {
@@ -147,26 +150,26 @@ function NorthStarWidget({ selectedProject }) {
                   <div className="flex items-center gap-1">
                     {getTrendIcon(metric.trend)}
                     <span className={`text-xs ${getTrendColor(metric.trend)}`}>
-                      {metric.trendPercentage > 0 ? '+' : ''}{metric.trendPercentage.toFixed(1)}%
+                      {Number(metric?.trendPercentage ?? 0) > 0 ? '+' : ''}{Number(metric?.trendPercentage ?? 0).toFixed(1)}%
                     </span>
                   </div>
                 </div>
                 
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{metric.currentValue.toLocaleString()} {metric.unit}</span>
-                    <span>{metric.targetValue.toLocaleString()} {metric.unit}</span>
+                    <span>{(metric.currentValue ?? 0).toLocaleString()} {metric.unit ?? ''}</span>
+                    <span>{(metric.targetValue ?? 0).toLocaleString()} {metric.unit ?? ''}</span>
                   </div>
                   
                   <div className="w-full bg-gray-200 rounded-full h-1.5">
                     <div
                       className="bg-black h-1.5 rounded-full transition-all"
-                      style={{ width: `${getProgressPercentage(metric.currentValue, metric.targetValue)}%` }}
+                      style={{ width: `${getProgressPercentage(metric.currentValue ?? 0, metric.targetValue ?? 1)}%` }}
                     />
                   </div>
                   
                   <div className="text-xs text-muted-foreground text-center">
-                    {Math.round(getProgressPercentage(metric.currentValue, metric.targetValue))}% of target
+                    {Math.round(getProgressPercentage(metric.currentValue ?? 0, metric.targetValue ?? 1))}% of target
                   </div>
                 </div>
               </div>

@@ -53,7 +53,7 @@ export const editModel = createAsyncThunk("model/editModel", async (payload, thu
 
 export const deleteModel = createAsyncThunk("model/deleteModel", async (payload, thunkAPI) => {
   try {
-    const modelId = thunkAPI.getState().model.selectedModel?._id || thunkAPI.getState().model.selectedModel?.id;
+    const modelId = payload.modelId ?? thunkAPI.getState().model.selectedModel?.id ?? thunkAPI.getState().model.selectedModel?._id;
     if (!modelId) return;
     await supabaseApi.deleteModel(modelId);
     thunkAPI.dispatch(getAllModels());

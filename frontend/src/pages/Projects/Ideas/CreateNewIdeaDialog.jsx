@@ -86,6 +86,8 @@ function CreateNewIdeaDialog({ selectedGoal, isOpen = false, onClose }) {
       description: "",
       files: []
     },
+    validateOnChange: true,
+    validateOnBlur: true,
     validationSchema: Yup.object().shape({
       name: ideaNameValidation,
       goal: Yup.string().required("Goal is required"),
@@ -482,7 +484,7 @@ function CreateNewIdeaDialog({ selectedGoal, isOpen = false, onClose }) {
                           {/* Select a goal */}
                           <div className="space-y-2">
                             <Label htmlFor="goal">Select a Goal</Label>
-                            <Select value={aboutGoalFormik.values.goal} onValueChange={(value) => aboutGoalFormik.setFieldValue("goal", value)}>
+                            <Select value={aboutGoalFormik.values.goal} onValueChange={(value) => { aboutGoalFormik.setFieldValue("goal", value); aboutGoalFormik.setFieldValue("keyMetric", ""); aboutGoalFormik.setFieldTouched("goal", true); }}>
                               <SelectTrigger className="w-full">
                                 <SelectValue placeholder="Select a Goal" className="truncate" />
                               </SelectTrigger>
@@ -517,7 +519,7 @@ function CreateNewIdeaDialog({ selectedGoal, isOpen = false, onClose }) {
                             <Label htmlFor="keyMetric">Key Metric</Label>
                             <Select
                               value={aboutGoalFormik.values.keyMetric}
-                              onValueChange={(value) => aboutGoalFormik.setFieldValue("keyMetric", value)}
+                              onValueChange={(value) => { aboutGoalFormik.setFieldValue("keyMetric", value); aboutGoalFormik.setFieldTouched("keyMetric", true); }}
                               disabled={aboutGoalFormik.values.goal === "" || aboutGoalFormik.values.goal === null}
                             >
                               <SelectTrigger className="w-full">
@@ -561,7 +563,7 @@ function CreateNewIdeaDialog({ selectedGoal, isOpen = false, onClose }) {
                         {/* Growth Lever */}
                         <div className="space-y-2">
                           <Label htmlFor="lever">Growth Lever</Label>
-                          <Select value={aboutGoalFormik.values.lever} onValueChange={(value) => aboutGoalFormik.setFieldValue("lever", value)}>
+                          <Select value={aboutGoalFormik.values.lever} onValueChange={(value) => { aboutGoalFormik.setFieldValue("lever", value); aboutGoalFormik.setFieldTouched("lever", true); }}>
                             <SelectTrigger className="w-full">
                               <SelectValue placeholder="Select a growth lever" className="truncate" />
                             </SelectTrigger>
@@ -598,6 +600,7 @@ function CreateNewIdeaDialog({ selectedGoal, isOpen = false, onClose }) {
                             defaultValue={aboutGoalFormik.values.description}
                             onChange={(content) => {
                               aboutGoalFormik.setFieldValue("description", content);
+                              aboutGoalFormik.setFieldTouched("description", true);
                             }}
                             setOptions={{
                               buttonList: [
@@ -806,8 +809,8 @@ function CreateNewIdeaDialog({ selectedGoal, isOpen = false, onClose }) {
                                 onClick={() => {
                                   setselectedMenu("I.C.E Score");
                                 }}
-                                className={!aboutGoalFormik.isValid || !aboutGoalFormik.dirty ? "bg-gray-400" : "bg-black hover:bg-gray-800"}
-                                disabled={!aboutGoalFormik.isValid || !aboutGoalFormik.dirty}
+                                className={!aboutGoalFormik.isValid ? "bg-gray-400 cursor-not-allowed" : "bg-black hover:bg-gray-800"}
+                                disabled={!aboutGoalFormik.isValid}
                               >
                                 Next
                               </Button>

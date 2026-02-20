@@ -16,7 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../../../components/ui/dropdown-menu";
-import { Plus, Edit3, Share2, Archive, BarChart3, Bell, Edit, Trash2, TrendingUp, Target, Play, MessageSquare, UserPlus, Settings, Activity, Bold, Italic, AtSign, Send } from "lucide-react";
+import { Plus, Edit3, Share2, Archive, BarChart3, Bell, Edit, Trash2, TrendingUp, Target, Play, MessageSquare, UserPlus, Settings, Activity, Bold, Italic, AtSign, Send, User } from "lucide-react";
 import ReactECharts from 'echarts-for-react';
 import {
   addGoalComment,
@@ -1080,24 +1080,11 @@ function GoalInfo() {
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {generateGoalActivities().slice(0, 10).map((activity) => {
                   const IconComponent = activity.icon;
-                  // Normalize avatar path
-                  const avatarPath = activity.user?.avatar 
-                    ? (activity.user.avatar.startsWith('/') ? activity.user.avatar : `/${activity.user.avatar}`)
-                    : '/uploads/default.png';
-                  const avatarUrl = `${backendServerBaseURL}${avatarPath}`;
-                  
                   return (
                     <div key={activity.id} className="flex items-start gap-3 pb-3 border-b last:border-0">
-                      <div className="relative">
-                        <img
-                          src={avatarUrl}
-                          className="w-6 h-6 rounded-full flex-shrink-0 object-cover"
-                          alt=""
-                          onError={(e) => {
-                            e.target.src = `${backendServerBaseURL}/uploads/default.png`;
-                          }}
-                        />
-                        <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-white border border-gray-200 flex items-center justify-center`}>
+                      <div className="relative flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                        <User className="w-4 h-4 text-muted-foreground" />
+                        <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-background border border-border flex items-center justify-center`}>
                           <IconComponent className={`w-2 h-2 ${activity.color}`} />
                         </div>
                       </div>
@@ -1250,11 +1237,9 @@ function GoalInfo() {
           {hasPermission_create_comments() && (
             <div className="mb-6">
               <div className="flex items-start gap-3">
-                <img
-                  src={`${backendServerBaseURL}/${me?.avatar}`}
-                  className="w-8 h-8 rounded-full flex-shrink-0 object-cover"
-                  alt=""
-                />
+                <div className="w-8 h-8 rounded-full flex-shrink-0 bg-muted flex items-center justify-center">
+                  <User className="w-4 h-4 text-muted-foreground" />
+                </div>
                 <div className="flex-1 relative">
                   <Textarea
                     id="comment-textarea"

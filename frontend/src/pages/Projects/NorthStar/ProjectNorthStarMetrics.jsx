@@ -752,8 +752,11 @@ function ProjectNorthStarMetrics() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={metric.isActive ? "default" : "secondary"}>
-                      {metric.isActive ? "Active" : "Inactive"}
+                    <Badge
+                      variant={(metric.isActive ?? metric.is_active ?? true) ? "default" : "secondary"}
+                      className="min-w-[4.5rem] justify-center"
+                    >
+                      {(metric.isActive ?? metric.is_active ?? true) ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
                   <TableCell>

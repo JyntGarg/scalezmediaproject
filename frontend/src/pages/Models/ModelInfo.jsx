@@ -497,7 +497,7 @@ function ModelInfo() {
       await dispatch(
         editModel({
           modelId,
-          name: singleModelInfo.name,
+          name: singleModelInfo?.name ?? values?.name ?? "Model",
           values: values,
           startingDate,
         })

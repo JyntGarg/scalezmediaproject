@@ -6,7 +6,6 @@ import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { deleteModel, getAllModels, selectmodels, updateModels, updateselectedModel, updateShowDeleteModelDialog, updateShowCreateModelDialog } from "../../redux/slices/modelSlice";
 import { formatTime } from "../../utils/formatTime";
-import { backendServerBaseURL } from "../../utils/backendServerBaseURL";
 import { isTypeOwner, isRoleAdmin, isRoleMember, hasPermission_add_models } from "../../utils/permissions";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -17,7 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu";
-import { MoreVertical, Plus, Search } from "lucide-react";
+import { MoreVertical, Plus, Search, User } from "lucide-react";
 
 
 function Models() {
@@ -128,30 +127,28 @@ function Models() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredModels.map((model) => (
+                  {filteredModels.map((model) => {
+                    const modelId = model.id ?? model._id;
+                    const creator = model.creator;
+                    const creatorName = creator ? `${creator.first_name ?? creator.firstName ?? ""} ${creator.last_name ?? creator.lastName ?? ""}`.trim() || "—" : "—";
+                    return (
                     <TableRow
-                      key={model._id}
+                      key={modelId}
                       className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => {
-                        navigate(`/models/${model._id}`);
-                      }}
+                      onClick={() => navigate(`/models/${modelId}`)}
                     >
                       <TableCell className="font-medium py-3">
                         {model.name}
                       </TableCell>
                       <TableCell className="py-3">
-                        {formatTime(model.createdAt)}
+                        {formatTime(model.created_at ?? model.createdAt)}
                       </TableCell>
                       <TableCell className="py-3">
                         <div className="flex items-center gap-2">
-                          <img
-                            src={`${backendServerBaseURL}/${model.creator.avatar}`}
-                            alt=""
-                            className="w-6 h-6 rounded-full"
-                          />
-                          <span>
-                            {model.creator.firstName} {model.creator.lastName}
-                          </span>
+                          <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                            <User className="w-3.5 h-3.5 text-muted-foreground" />
+                          </div>
+                          <span>{creatorName}</span>
                         </div>
                       </TableCell>
                       <TableCell className="py-3">
@@ -174,9 +171,7 @@ function Models() {
                             }}
                           >
                             <DropdownMenuItem
-                              onClick={() => {
-                                navigate(`/models/${model._id}`);
-                              }}
+                              onClick={() => navigate(`/models/${modelId}`)}
                             >
                               View Model
                             </DropdownMenuItem>
@@ -194,7 +189,7 @@ function Models() {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  );})}
                 </TableBody>
               </Table>
             </CardContent>

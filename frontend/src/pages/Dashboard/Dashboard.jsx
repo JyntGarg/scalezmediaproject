@@ -140,28 +140,24 @@ function Dashboard() {
   let goalInfo = goalsData.filter((idea) => idea.owner === me?.id);
   // console.log('goalInfo :>> ', goalInfo);
   const isUserInGoalsProjectTeam = goalsData.filter(
-    (goal) => goal?.project?.team.includes(me?.id || me?._id)
-
+    (goal) => (goal?.project?.team ?? []).includes(me?.id || me?._id)
   );
   const testsData = useSelector(selecttestsData);
   // console.log('testsData :>> ', testsData);
   const isUserInTestsProjectTeam = testsData.filter(
-    (test) => test?.project?.team.includes(me?.id || me?._id)
-
+    (test) => (test?.project?.team ?? []).includes(me?.id || me?._id)
   );
   const learningsData = useSelector(selectlearningsData);
   // console.log('learningsData :>> ', learningsData);
   const isUserInLearningsProjectTeam = learningsData.filter(
-    (learning) => learning?.project?.team.includes(me?.id || me?._id)
-
+    (learning) => (learning?.project?.team ?? []).includes(me?.id || me?._id)
   );
   const ideasData = useSelector(selectideasData);
   // console.log('ideasData :>> ', ideasData);
   let ideaInfo = ideasData.some((idea) => idea.owner === me?.id);
 
   const isUserInTeamIdea = ideasData.filter(
-    (idea) => idea?.project?.team.includes(me?.id || me?._id)
-
+    (idea) => (idea?.project?.team ?? []).includes(me?.id || me?._id)
   );
   // console.log('isUserInTeamIdea:>> ', isUserInTeamIdea)
 

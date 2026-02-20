@@ -432,8 +432,8 @@ function NorthStarMetrics() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge className={metric.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
-                      {metric.isActive ? "Active" : "Inactive"}
+                    <Badge className={(metric.isActive ?? metric.is_active ?? true) ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
+                      {(metric.isActive ?? metric.is_active ?? true) ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
                   <TableCell>

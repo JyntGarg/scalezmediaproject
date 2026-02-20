@@ -778,9 +778,11 @@ export async function createModel(payload) {
 export async function updateModel(modelId, payload) {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Unauthorized");
+  const updatePayload = { name: payload.name };
+  if (payload.values != null) updatePayload.data = payload.values;
   const { data, error } = await supabase
     .from("models")
-    .update({ name: payload.name, data: payload.values })
+    .update(updatePayload)
     .eq("id", modelId)
     .eq("creator_id", userId)
     .select("*, creator:users!creator_id(*)")
@@ -792,15 +794,13 @@ export async function updateModel(modelId, payload) {
 export async function deleteModel(modelId) {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Unauthorized");
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("models")
     .delete()
     .eq("id", modelId)
-    .eq("creator_id", userId)
-    .select("*, creator:users!creator_id(*)")
-    .single();
+    .eq("creator_id", userId);
   if (error) throw error;
-  return { message: "Model deleted successfully", model: data };
+  return { message: "Model deleted successfully" };
 }
 
 // ---- Analytics ----

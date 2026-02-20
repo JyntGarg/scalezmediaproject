@@ -18,16 +18,21 @@ logger = (req, res, next) => {
 };
 app.use(logger);
 const server = require("http").Server(app);
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "https://scalezmedia.vercel.app",
+  "http://localhost:3005",
+  "http://localhost:3000"
+].filter(Boolean);
+
 io = module.exports = require("socket.io")(server, {
   cors: {
-    origin: [
-      "https://app.scalez.in",
-      "https://admin.scalez.in",
-      "https://api.scalez.in",
-      "https://scalezmedia.vercel.app",
-      "http://localhost:3005",
-      "http://localhost:3000"
-    ],
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+      if (/\.vercel\.app$/.test(origin)) return cb(null, true);
+      cb(null, false);
+    },
     methods: ["GET", "POST"],
     credentials: true
   },

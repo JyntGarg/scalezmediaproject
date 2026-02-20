@@ -1,6 +1,9 @@
 export const formatDate = (dateString) => {
+  if (dateString == null || dateString === "") return "—";
+  const d = new Date(dateString);
+  if (Number.isNaN(d.getTime())) return "—";
   const options = { year: "numeric", month: "short", day: "numeric" };
-  return new Date(dateString).toLocaleDateString(undefined, options);
+  return d.toLocaleDateString(undefined, options);
 };
 
 export const formatDate2 = (dateString) => {
@@ -19,9 +22,12 @@ export const formatDate4 = (dateString) => {
 };
 
 export const formatTime = (time) => {
-  let date = formatDate(new Date(time));
+  if (time == null || time === "") return "—";
+  const d = new Date(time);
+  if (Number.isNaN(d.getTime())) return "—";
+  let date = formatDate(d);
 
-  let hours = new Date(time).getHours();
+  let hours = d.getHours();
 
   if (hours.toString().length === 1) {
     hours = "0" + hours.toString();
@@ -29,7 +35,7 @@ export const formatTime = (time) => {
 
   hours = hours.toString();
 
-  let minutes = new Date(time).getMinutes();
+  let minutes = d.getMinutes();
 
   if (minutes.toString().length === 1) {
     minutes = "0" + minutes.toString();
@@ -37,7 +43,7 @@ export const formatTime = (time) => {
 
   minutes = minutes.toString();
 
-  return date;
+  return date || "—";
   // return date + " " + hours + ":" + minutes;
 };
 

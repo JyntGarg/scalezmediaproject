@@ -8,9 +8,10 @@ if (!process.env.NODE_ENV || process.env.NODE_ENV === "development") {
   tempsocketURL = "http://localhost:7400";
   tempFrontEndURL = "http://localhost:3005";
 } else {
-  tempbackendServerBaseURL = "https://api.scalez.in";
-  tempsocketURL = "https://api.scalez.in";
-  tempFrontEndURL = "https://app.scalez.in";
+  // Production: set in Vercel (or hosting) env vars. Supabase handles data/auth; optional Node API URL here.
+  tempbackendServerBaseURL = process.env.REACT_APP_API_URL || "";
+  tempsocketURL = process.env.REACT_APP_SOCKET_URL || process.env.REACT_APP_API_URL || "";
+  tempFrontEndURL = process.env.REACT_APP_FRONTEND_URL || (typeof window !== "undefined" ? window.location.origin : "");
 }
 
 export let backendServerBaseURL = tempbackendServerBaseURL;

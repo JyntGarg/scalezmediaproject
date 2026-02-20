@@ -61,7 +61,13 @@ export const getAllProjects = createAsyncThunk("project/getAllProjects", async (
 
     let query = supabase
       .from('projects')
-      .select('*')
+      .select(`
+        *,
+        project_teams(
+          user_id,
+          users(id, first_name, last_name, avatar)
+        )
+      `)
       .eq('owner_id', ownerId);
 
     const status = thunkAPI.getState().project.projectSelectedTab;
@@ -76,14 +82,38 @@ export const getAllProjects = createAsyncThunk("project/getAllProjects", async (
       query = query.ilike('name', `%${search}%`);
     }
 
-    const { data: projects, error } = await query;
-    if (error) throw error;
+    let projects;
+    let err = null;
+    ({ data: projects, error: err } = await query);
+    if (err) {
+      // Fallback if project_teams/users relation not set: fetch projects without team
+      let fallbackQuery = supabase.from('projects').select('*').eq('owner_id', ownerId);
+      if (status === "Archived") fallbackQuery = fallbackQuery.eq('is_archived', true);
+      else fallbackQuery = fallbackQuery.eq('is_archived', false);
+      if (search) fallbackQuery = fallbackQuery.ilike('name', `%${search}%`);
+      const { data: fallbackData, error: fallbackError } = await fallbackQuery;
+      if (fallbackError) throw fallbackError;
+      projects = fallbackData;
+    }
+
+    const mapMemberToUser = (m) => {
+      if (!m?.users) return null;
+      const u = m.users;
+      return {
+        _id: u.id,
+        id: u.id,
+        firstName: u.first_name,
+        lastName: u.last_name,
+        avatar: u.avatar,
+      };
+    };
 
     const mapped = (projects || []).map((p) => ({
       ...p,
       _id: p.id,
       createdAt: p.created_at,
       updatedAt: p.updated_at,
+      team: (p.project_teams || []).map(mapMemberToUser).filter(Boolean),
     }));
     thunkAPI.dispatch(updateProjects(mapped));
     localStorage.setItem("projectsData", JSON.stringify(mapped));
@@ -182,6 +212,18 @@ export const createProject = createAsyncThunk("project/createProject", async (pa
       .single();
 
     if (error) throw error;
+
+    // Add team members to project_teams if provided
+    const team = payload.team;
+    if (data?.id && Array.isArray(team) && team.length > 0) {
+      const inserts = team.map((t) => ({
+        project_id: data.id,
+        user_id: t._id || t.id,
+      })).filter((row) => row.user_id);
+      if (inserts.length > 0) {
+        await supabase.from('project_teams').insert(inserts);
+      }
+    }
 
     // Refresh projects list
     await thunkAPI.dispatch(getAllProjects());
@@ -732,6 +774,26 @@ export const editProject = createAsyncThunk("project/editProject", async (payloa
       .eq('id', payload.projectId);
 
     if (error) throw error;
+
+    // Sync team members in project_teams (junction table)
+    const team = payload.team;
+    if (Array.isArray(team)) {
+      const { error: deleteErr } = await supabase
+        .from('project_teams')
+        .delete()
+        .eq('project_id', payload.projectId);
+      if (deleteErr) console.warn("Error clearing project team:", deleteErr);
+
+      const userIds = team.map((t) => t._id || t.id).filter(Boolean);
+      if (userIds.length > 0) {
+        const inserts = userIds.map((userId) => ({
+          project_id: payload.projectId,
+          user_id: userId,
+        }));
+        const { error: insertErr } = await supabase.from('project_teams').insert(inserts);
+        if (insertErr) console.warn("Error saving project team:", insertErr);
+      }
+    }
 
     // Refresh projects list
     await thunkAPI.dispatch(getAllProjects());
@@ -1425,11 +1487,22 @@ export const requestIdea = createAsyncThunk("project/requestIdea", async (payloa
   }
 });
 
+function mapGoalUser(u) {
+  if (!u) return null;
+  return {
+    ...u,
+    _id: u.id,
+    id: u.id,
+    firstName: u.first_name ?? u.firstName,
+    lastName: u.last_name ?? u.lastName,
+  };
+}
+
 export const readSingleGoal = createAsyncThunk("project/readSingleGoal", async (payload, thunkAPI) => {
   try {
     const { data: goal, error } = await supabase
       .from('goals')
-      .select('*, members:users!goal_members(*), owner:users!owner_id(*), project:projects(*)')
+      .select('*, members:users!goal_members(*), owner:users!owner_id(*), project:projects(*), created_by_user:users!created_by(*)')
       .eq('id', payload.goalId)
       .single();
 
@@ -1445,6 +1518,10 @@ export const readSingleGoal = createAsyncThunk("project/readSingleGoal", async (
       _id: goal.id,
       startDate: goal.start_date,
       endDate: goal.end_date,
+      createdAt: goal.created_at ?? goal.createdAt,
+      updatedAt: goal.updated_at ?? goal.updatedAt,
+      createdBy: mapGoalUser(goal.created_by_user) ?? mapGoalUser(goal.createdBy),
+      updatedBy: mapGoalUser(goal.updated_by_user) ?? mapGoalUser(goal.updatedBy) ?? null,
       tests: tests || [],
       ideas: ideas || [],
       learnings: learnings || [],

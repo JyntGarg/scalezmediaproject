@@ -62,8 +62,9 @@ function CreateNewProjectDialog({ isOpen = false, onClose }) {
   const { errors, touched, handleSubmit, isSubmitting, getFieldProps, values, resetForm } = formik;
 
   const addTeamMember = (teamMember) => {
+    const list = selectedTeamMembers ?? [];
     // Check if member is already selected by comparing IDs
-    const isAlreadySelected = selectedTeamMembers.some(
+    const isAlreadySelected = list.some(
       (tm) => (tm._id || tm.id) === (teamMember._id || teamMember.id)
     );
 
@@ -72,13 +73,13 @@ function CreateNewProjectDialog({ isOpen = false, onClose }) {
       removeSelectedTeamMember(teamMember);
     } else {
       // Add if not selected
-      setselectedTeamMembers([...selectedTeamMembers, teamMember]);
+      setselectedTeamMembers([...list, teamMember]);
     }
   };
 
   const removeSelectedTeamMember = (data) => {
     let tempTM = [];
-    selectedTeamMembers.map((tm, index) => {
+    (selectedTeamMembers ?? []).map((tm, index) => {
       if ((tm.id || tm._id) != (data.id || data._id)) {
         tempTM.push(tm);
       }
@@ -94,7 +95,7 @@ function CreateNewProjectDialog({ isOpen = false, onClose }) {
         description: selectedProject.description,
         status: selectedProject.status || "Not Defined",
       });
-      setselectedTeamMembers(selectedProject.team);
+      setselectedTeamMembers(Array.isArray(selectedProject.team) ? selectedProject.team : []);
     } else {
       formik.setValues({
         name: "",
@@ -105,8 +106,8 @@ function CreateNewProjectDialog({ isOpen = false, onClose }) {
   }, [selectedProject]);
 
   useEffect(() => {
-    dispatch(getAllRegisteredUsers());
-  }, []);
+    if (isOpen) dispatch(getAllRegisteredUsers());
+  }, [isOpen, dispatch]);
 
   // Reset form when dialog closes
   useEffect(() => {
@@ -175,96 +176,85 @@ function CreateNewProjectDialog({ isOpen = false, onClose }) {
                     onOpenChange={setIsSelectOpen}
                     onValueChange={(value) => {
                       if (value === "everyone") {
-                        setselectedTeamMembers(users);
+                        setselectedTeamMembers(Array.isArray(users) ? users : []);
                         setIsSelectOpen(false);
+                      } else if (value && value !== "") {
+                        const member = (users ?? []).find((u) => (u._id || u.id) === value);
+                        if (member) addTeamMember(member);
+                        // Re-open dropdown so user can add more (multi-select)
+                        setTimeout(() => setIsSelectOpen(true), 0);
                       }
                     }}
                     modal={false}
                     value=""
                   >
                     <SelectTrigger className="w-full min-h-[42px] h-auto">
-                      <div className="w-full">
-                        {selectedTeamMembers.length > 0 ? (
-                          <div className="flex items-center flex-wrap gap-2 py-1">
-                            {selectedTeamMembers.map((teamMember) => (
+                      <div className="w-full flex items-center flex-wrap gap-2 py-1">
+                        {(selectedTeamMembers ?? []).length > 0 ? (
+                          (selectedTeamMembers ?? []).map((teamMember) => (
+                            <span
+                              key={teamMember.id || teamMember._id}
+                              className="inline-flex items-center gap-1.5 bg-muted px-2 py-1 rounded-md text-sm text-foreground"
+                            >
+                              <img
+                                src={teamMember.avatar ? `${backendServerBaseURL}/${teamMember.avatar}`.replace(/\/\/+/g, "/") : ""}
+                                className="w-5 h-5 rounded-full bg-muted"
+                                alt=""
+                              />
+                              <span className="text-xs">
+                                {teamMember.firstName} {teamMember.lastName}
+                              </span>
                               <span
-                                key={teamMember.id || teamMember._id}
-                                className="inline-flex items-center gap-1.5 bg-muted px-2 py-1 rounded-md text-sm text-foreground"
-                              >
-                                <img
-                                  src={`${backendServerBaseURL}/${teamMember.avatar}`}
-                                  className="w-5 h-5 rounded-full"
-                                  alt=""
-                                />
-                                <span className="text-xs">
-                                  {teamMember.firstName} {teamMember.lastName}
-                                </span>
-                                <span
-                                  role="button"
-                                  tabIndex={0}
-                                  className="text-muted-foreground hover:text-foreground ml-1 hover:bg-background rounded-sm p-0.5 transition-colors z-10 cursor-pointer inline-flex items-center"
-                                  onPointerDown={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                  }}
-                                  onClick={(e) => {
+                                role="button"
+                                tabIndex={0}
+                                className="text-muted-foreground hover:text-foreground ml-1 hover:bg-background rounded-sm p-0.5 transition-colors z-10 cursor-pointer inline-flex items-center"
+                                onPointerDown={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  removeSelectedTeamMember(teamMember);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
                                     e.preventDefault();
                                     e.stopPropagation();
                                     removeSelectedTeamMember(teamMember);
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      removeSelectedTeamMember(teamMember);
-                                    }
-                                  }}
-                                >
-                                  <X className="h-3 w-3" />
-                                </span>
+                                  }
+                                }}
+                              >
+                                <X className="h-3 w-3" />
                               </span>
-                            ))}
-                          </div>
+                            </span>
+                          ))
                         ) : (
                           <span className="text-muted-foreground">Select team members</span>
                         )}
                       </div>
                     </SelectTrigger>
-                    <SelectContent className="z-[10000]" position="popper" sideOffset={5}>
+                    <SelectContent className="z-[10000]" position="popper" sideOffset={5} onCloseAutoFocus={(e) => e.preventDefault()}>
                       <SelectItem value="everyone">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs">
-                            <Users className="h-3 w-3" />
-                          </div>
-                          <span>Everyone in your team ({users?.length})</span>
-                        </div>
+                        <span className="flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          Everyone in your team ({(users ?? []).length})
+                        </span>
                       </SelectItem>
-                      {users?.map((teamMember) => (
-                        <div
-                          key={teamMember.id || teamMember._id}
-                          className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-6 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            const member = users.find((u) => (u._id || u.id) === (teamMember._id || teamMember.id));
-                            if (member) {
-                              addTeamMember(member);
-                            }
-                          }}
-                        >
-                          <div className="flex items-center gap-2">
-                            <img
-                              src={`${backendServerBaseURL}/${teamMember.avatar}`}
-                              className="w-6 h-6 rounded-full"
-                              alt=""
-                            />
-                            <span>{teamMember?.firstName} {teamMember?.lastName}</span>
-                            {selectedTeamMembers.some((tm) => (tm._id || tm.id) === (teamMember._id || teamMember.id)) && (
-                              <span className="ml-2 text-xs text-green-600">✓</span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                      {(users ?? []).length === 0 ? (
+                        <div className="py-3 px-2 text-sm text-muted-foreground text-center">No team members found. Add users in Settings.</div>
+                      ) : (
+                        (users ?? []).map((teamMember) => {
+                          const id = teamMember._id || teamMember.id;
+                          const name = [teamMember?.firstName, teamMember?.lastName].filter(Boolean).join(" ") || "Unknown";
+                          const isSelected = (selectedTeamMembers ?? []).some((tm) => (tm._id || tm.id) === id);
+                          return (
+                            <SelectItem key={id} value={String(id)}>
+                              {name}{isSelected ? " ✓" : ""}
+                            </SelectItem>
+                          );
+                        })
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
