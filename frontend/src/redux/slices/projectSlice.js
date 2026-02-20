@@ -79,8 +79,14 @@ export const getAllProjects = createAsyncThunk("project/getAllProjects", async (
     const { data: projects, error } = await query;
     if (error) throw error;
 
-    thunkAPI.dispatch(updateProjects(projects));
-    localStorage.setItem("projectsData", JSON.stringify(projects));
+    const mapped = (projects || []).map((p) => ({
+      ...p,
+      _id: p.id,
+      createdAt: p.created_at,
+      updatedAt: p.updated_at,
+    }));
+    thunkAPI.dispatch(updateProjects(mapped));
+    localStorage.setItem("projectsData", JSON.stringify(mapped));
   } catch (error) {
     console.error("Error fetching projects:", error);
     return thunkAPI.rejectWithValue(error.message);
@@ -146,7 +152,13 @@ export const getAllArchievedProjects = createAsyncThunk("project/getAllArchieved
     }
     const { data: projects, error } = await query;
     if (error) throw error;
-    thunkAPI.dispatch(updateProjects(projects || []));
+    const mapped = (projects || []).map((p) => ({
+      ...p,
+      _id: p.id,
+      createdAt: p.created_at,
+      updatedAt: p.updated_at,
+    }));
+    thunkAPI.dispatch(updateProjects(mapped));
   } catch (error) {
     console.error("Error fetching archived projects:", error);
     return thunkAPI.rejectWithValue(error.message);

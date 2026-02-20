@@ -241,11 +241,12 @@ function Toolbar({ socket }) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center space-x-2 focus:outline-none hover:opacity-80 transition-opacity p-1 rounded-md hover:bg-muted">
-                  <img
-                    src={getAssetUrl(me?.avatar) || undefined}
-                    alt="Profile"
-                    className="w-8 h-8 rounded-full border-2 border-border hover:border-foreground/20 transition-colors"
-                  />
+                  <Avatar className="w-8 h-8 border-2 border-border hover:border-foreground/20 transition-colors">
+                    <AvatarImage src={getAssetUrl(me?.avatar) || undefined} alt="Profile" />
+                    <AvatarFallback className="bg-muted text-muted-foreground">
+                      <User className="h-4 w-4" />
+                    </AvatarFallback>
+                  </Avatar>
                   <ChevronDown className="w-4 h-4 text-black" />
                 </button>
               </DropdownMenuTrigger>
@@ -253,11 +254,12 @@ function Toolbar({ socket }) {
                 {/* Profile Header */}
                 <DropdownMenuLabel className="px-4 py-3 border-b border-border">
                   <div className="flex items-center space-x-3">
-                    <img
-                      src={getAssetUrl(me?.avatar) || undefined}
-                      alt="Profile"
-                      className="w-10 h-10 rounded-full"
-                    />
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={getAssetUrl(me?.avatar) || undefined} alt="Profile" />
+                      <AvatarFallback className="bg-muted text-muted-foreground">
+                        <User className="h-5 w-5" />
+                      </AvatarFallback>
+                    </Avatar>
                     <div>
                       <p className="text-sm font-medium text-foreground">
                         {me?.firstName} {me?.lastName}

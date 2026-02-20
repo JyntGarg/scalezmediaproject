@@ -230,7 +230,9 @@ function Projects() {
 
                           {/* Created */}
                           <TableCell className="text-muted-foreground py-4">
-                            {formatTime(project.createdAt)}
+                            {(project.createdAt || project.created_at) && !Number.isNaN(new Date(project.createdAt || project.created_at).getTime())
+                              ? formatTime(project.createdAt || project.created_at)
+                              : "—"}
                           </TableCell>
 
                           {/* Owner */}
